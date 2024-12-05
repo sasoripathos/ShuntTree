@@ -33,23 +33,63 @@ object ShuntTreeObject {
   // - height: BigInt
   // - apply(i), get element at index i
   // ...... check the scala docs, maybe there are many others can do ......
-  extension[A, B](t: ShuntTree[A, B]) {
+  
+  
+  extension[A, B](c: ShuntContext[A, B]) {
     def toList: List[A] = {
-
+      c match {
+        case H(_) => List()
+        case L(left, middle, right) => left.toList ++ middle.toList ++ right.toList
+        case R(left, middle, right) => left.toList ++ middle.toList ++ right.toList
+      }
     }
-
     def size: BigInt = {
-
+      c match {
+        case H(_) => 0
+        case L(left, middle, right) => left.size + middle.size + right.size
+        case R(left, middle, right) => left.size + middle.size + right.size
+      }
     }
-
     def height: BigInt = {
-
-    }
-
-    def apply(i: BigInt): A = {
-
+      c match {
+        case H(_) => 0
+        case L(left, middle, right) => 1 + (left.height max middle.height max right.height)
+        case R(left, middle, right) => 1 + (left.height max middle.height max right.height)
+      }
     }
   }
+
+  extension[A, B](t: ShuntTree[A, B]) {
+
+  
+    def toList: List[A] = {
+      
+      t match {
+        case T(value) => List(value)
+        case N(left, middle, right) => left.toList ++ middle.toList ++ right.toList
+
+
+
+      }
+    }
+    def size: BigInt = {
+      t match {
+        case T(_) => 1
+        case N(left, middle, right) => left.size + middle.size + right.size
+      }
+    }
+    def height: BigInt = {
+      t match {
+        case T(_) => 1
+        case N(left, middle, right) => 1 + (left.height max middle.height max right.height)
+      }
+    }
+    
+
+  
+    
+  }
+   
   
   // 2. Should implement and prove common list aggregation operations, including but not limited to
   // - sum
@@ -68,3 +108,5 @@ object ShuntTreeObject {
   // 5. should we support traditional tree operations like insert(+ proper balancing)? Comparing with conq tree, this seems to be an overkill.
 
 }
+
+
