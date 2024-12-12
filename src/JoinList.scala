@@ -19,7 +19,35 @@ object JoinListObject {
   // Single element
   case class Single[T](value: T) extends JoinList[T]
   // Join element
-  case class Join[T](left: JoinList[T], right: JoinList[T]) extends JoinList[T]
+  case class Join[T](left: JoinList[T], right: JoinList[T]) extends JoinList[T] {
+    require(
+      left != Empty[T]() && right != Empty[T]() // as define in the paper, left and right cannot be empty
+      && BigInt(-1) <= left.height - right.height && left.height - right.height <= BigInt(1) // ensure the 2 lists are balanced
+    )
+  }
+
+  // construct the special operations for JoinList (as it is a tree)
+  extension[T](jl: JoinList[T]) {
+    def height: BigInt = {
+      // Calculate the hight of a tree, empty has hight 0
+      jl match {
+        case Empty() => BigInt(0)
+        case Single(x) => BigInt(1)
+        case Join(l, r) => max(l.height, r.height) + BigInt(1)
+      }
+    }//.ensuring(pow(BigInt(2), _) >= jl.size * BigInt(2)) // 2 ^ (height - 1) >= size of the list since it is balanced
+
+    def isBalanced: Boolean = {
+      jl match {
+        case Join(l, r) => l.isBalanced && r.isBalanced // both child are balanced, constructor ensured the hight differences
+        case _ => True // true for empty and single node
+      }
+    }
+  }
+
+  // Proof for tree properties
+  def joinListIsAlwaysBalanced(jl: JoinList[T]): Unit = {
+  }.ensuring(jl.isBalanced)
 
   // extend the following basic list functions
   extension[T](jl: JoinList[T]) {
@@ -40,15 +68,6 @@ object JoinListObject {
         case Join(l, r) => l.size + r.size
       }
     }.ensuring(_ == jl.toList.size)
-
-    def height: BigInt = {
-      // JoinList is like tree, height is to calculate the hight of a tree, empty has hight 0
-      jl match {
-        case Empty() => BigInt(0)
-        case Single(x) => BigInt(1)
-        case Join(l, r) => max(l.height, r.height) + BigInt(1)
-      }
-    }//.ensuring(pow(BigInt(2), _) >= jl.size * BigInt(2)) // 2 ^ (height - 1) >= size of the list since it is balanced
 
     def apply(i: BigInt): T = {
       // Find the i-th element from the JoinList
@@ -97,6 +116,14 @@ object JoinListObject {
   // - ++ && ++:
   // foldl, foldr?
   // ...... maybe more in.
+  // extension[T](jl: JoinList(T)) {
+  //   def ++(other: JoinList[T]): JoinList[T] = {
+  //     jl match {
+  //       case Empty() => other
+  //       case 
+  //     }
+  //   } 
+  // }
 
   // 4. should have a self-balancing version of Shunt Tree, but don't know how to do it yet, should we have a balanced topology tree? 
 
