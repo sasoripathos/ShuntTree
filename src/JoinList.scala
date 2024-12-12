@@ -61,13 +61,34 @@ object JoinListObject {
     }
   }.ensuring(jl.isBalanced)
 
-  // P2: a JoinList with at least 2 element has at least hight 2
-  def hightForAtLeastTwoElement[T](jl: JoinList[T]): Unit = {
-    require(jl.size >= BigInt(2))
-    assert(jl.isJoin)
-    assert(jl.left.size >= 1 && jl.right.size >= 1)
-    ()
-  }.ensuring(jl.height >= 2)
+  // p2: a JoinList with element has at least size >= 1
+  def sizeForNonEmpty[T](jl: JoinList[T]): Unit = {
+    require(!jl.isEmpty)
+    jl match {
+      case Single(x) => {
+        assert(jl.size == BigInt(1))
+        ()
+      }
+      case Join(l, r) => {
+        sizeForNonEmpty(l)
+        sizeForNonEmpty(r)
+        assert(jl.size >= 1)
+        ()
+      }
+    }
+  }.ensuring(jl.size >= BigInt(1))
+
+  // // P3: a JoinList with at least 2 element has at least hight 2
+  // def hightForAtLeastTwoElement[T](jl: JoinList[T]): Unit = {
+  //   require(jl.size >= BigInt(2))
+  //   assert(jl.isJoin)
+  //   jl match {
+  //     case Join(l, r) => {
+  //       assert(l.size >= 1 && r.size >= 1)
+  //       ()
+  //     }
+  //   }
+  // }.ensuring(jl.height >= 2)
 
   // extend the following basic list functions
   extension[T](jl: JoinList[T]) {
@@ -91,7 +112,7 @@ object JoinListObject {
 
     def apply(i: BigInt): T = {
       // Find the i-th element from the JoinList
-      require(i >= 0 && i < jl.size) // i should in range
+      require(i >= BigInt(0) && i < jl.size) // i should in range
       jl match {
         // should have no case for empty
         case Single(x) => {
@@ -143,32 +164,34 @@ object JoinListObject {
     def head: T = {
       // Return the first element of the JoinList, only work on non-empty list
       require(!jl.isEmpty)
-      jl match {
-        case Single(x) => x
-        case Join(l, r) => l.head
-      }
+      sizeForNonEmpty(jl)
+      jl.apply(BigInt(0))
     }.ensuring(_ == jl.toList.head)
 
-    def :+(v: T): JoinList[T] = {
-      // append an element, return a new (balanced) JoinList
-      jl match {
-        case Empty() => Single(v) // this is the only element
-        case Single(x) => Join(jl, Single(v)) // 2-element list
-        case Join(l, r) => {
-          val newr = r :+ v // for sure insert to right
-          assert(l.height >= 1) // non-empty has height >= 1
-          assert(newr.height <= r.height + BigInt(1) && newr.height >= r.height) // insert would at most result it height + 1, at least the same height
-          if (BigInt(-1) <= l.height - newr.hight && l.height - newr.hight <= BigInt(1)) then Join(l, newr)
-          else {
-            assert(l.height - newr.height == -2 && newr.height == r.height + 1)
-            assert(newr.isJoin) // because height > 1
-            // newr must be a Join
-            assert(BigInt(-1) <= l.height - newr.left.height && l.height - newr.left.height <= BigInt(1))
-            Join(Join(l, newr.left), newr.right)
-          }
-        }
-      }
-    }.ensuring(_ == jl.toList :+ v)
+    // def :+(v: T): JoinList[T] = {
+    //   // append an element, return a new (balanced) JoinList
+    //   jl match {
+    //     case Empty() => Single(v) // this is the only element
+    //     case Single(x) => Join(jl, Single(v)) // 2-element list
+    //     case Join(l, r) => {
+    //       val newr = r :+ v // for sure insert to right
+    //       assert(l.height >= 1) // non-empty has height >= 1
+    //       assert(newr.height <= r.height + BigInt(1) && newr.height >= r.height) // insert would at most result it height + 1, at least the same height
+    //       if (BigInt(-1) <= l.height - newr.height && l.height - newr.height <= BigInt(1)) then Join(l, newr)
+    //       else {
+    //         assert(l.height - newr.height == -2 && newr.height == r.height + 1)
+    //         assert(newr.isJoin) // because height > 1
+    //         // newr must be a Join
+    //         newr match {
+    //           case Join(rl, rr) => {
+    //             assert(BigInt(-1) <= l.height - rl.height && l.height - rl.height <= BigInt(1))
+    //             Join(Join(l, rl), rr)
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }.ensuring(_ == jl.toList :+ v)
 
     // def ::(v: T): JoinList[T] = {
     //   // prepend
