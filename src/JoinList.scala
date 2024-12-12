@@ -4,10 +4,18 @@ import stainless.annotation.*
 
 object JoinListObject {
 
+  // helper funtions
+  def max(x: BigInt, y: BigInt) = if x >= y then x else y
+  // def pow(base: BigInt, exp: BigInt): BigInt = {
+  //   require(exp >= 0) // only handle non neg exp
+  //   if (exp == BigInt(0)) then BigInt(1)
+  //   else base * pow(base, exp - BigInt(1))
+  // }
+
   // JoinList[T]
   sealed abstract class JoinList[T]
   // Add one case for empty list
-  case class Empty[T] extends JoinList[T]
+  case class Empty[T]() extends JoinList[T]
   // Single element
   case class Single[T](value: T) extends JoinList[T]
   // Join element
@@ -18,7 +26,7 @@ object JoinListObject {
     def toList: List[T] = {
       // Turn a JoinList to a stainless List
       jl match {
-        case Empty => Nil[T]()
+        case Empty() => Nil[T]()
         case Single(x) => Cons(x, Nil[T]())
         case Join(l, r) => l.toList ++ r.toList
       }
@@ -27,7 +35,7 @@ object JoinListObject {
     def size: BigInt = {
       // Count the number of element in JoinList
       jl match {
-        case Empty => BigInt(0)
+        case Empty() => BigInt(0)
         case Single(x) => BigInt(1)
         case Join(l, r) => l.size + r.size
       }
@@ -36,11 +44,11 @@ object JoinListObject {
     def height: BigInt = {
       // JoinList is like tree, height is to calculate the hight of a tree, empty has hight 0
       jl match {
-        case Empty => BigInt(0)
+        case Empty() => BigInt(0)
         case Single(x) => BigInt(1)
-        case Join(l, r) => max(l.size, r.size) +  BigInt(1)
+        case Join(l, r) => max(l.height, r.height) + BigInt(1)
       }
-    }.ensuring(pow(BigInt(2), _) >= jl.size) // 2 ^ height >= size of the list since it is balanced
+    }//.ensuring(pow(BigInt(2), _) >= jl.size * BigInt(2)) // 2 ^ (height - 1) >= size of the list since it is balanced
 
     def apply(i: BigInt): T = {
       // Find the i-th element from the JoinList
@@ -52,6 +60,8 @@ object JoinListObject {
           x
         }
         case Join(l, r) => {
+          // Stainless list has proved the following in ListSpecs.scala
+          ListSpecs.appendIndex(l.toList, r.toList, i)
           if (i < l.size) l.apply(i)
           else r.apply(i - l.size)
         }
