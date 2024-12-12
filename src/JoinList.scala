@@ -39,7 +39,7 @@ object JoinListObject {
 
     def isBalanced: Boolean = {
       jl match {
-        case Join(l, r) => l.isBalanced && r.isBalanced // both child are balanced, constructor ensured the hight differences
+        case Join(l, r) => BigInt(-1) <= l.height - r.height && l.height - r.height <= BigInt(1) && l.isBalanced && r.isBalanced // both child are balanced, constructor ensured the hight differences
         case _ => true // true for empty and single node
       }
     }
@@ -49,7 +49,7 @@ object JoinListObject {
   def joinListIsAlwaysBalanced[T](jl: JoinList[T]): Unit = {
     jl match {
       case Join(l, r) => {
-        assert(BigInt(-1) <= l.height - r.height && l.height - r.height <= BigInt(1) )
+        assert(BigInt(-1) <= l.height - r.height && l.height - r.height <= BigInt(1))
         joinListIsAlwaysBalanced(l)
         joinListIsAlwaysBalanced(r)
       } // both child are balanced, constructor ensured the hight differences
