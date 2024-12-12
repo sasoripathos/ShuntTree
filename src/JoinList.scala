@@ -46,6 +46,7 @@ object JoinListObject {
   }
 
   // Proof for tree properties
+  // P1. a JoinList is always balanced
   def joinListIsAlwaysBalanced[T](jl: JoinList[T]): Unit = {
     jl match {
       case Join(l, r) => {
@@ -59,6 +60,14 @@ object JoinListObject {
       } // true for empty and single node
     }
   }.ensuring(jl.isBalanced)
+
+  // P2: a JoinList with at least 2 element has at least hight 2
+  def hightForAtLeastTwoElement[T](jl: JoinList[T]): Unit = {
+    require(jl.size >= BigInt(2))
+    assert(jl.isJoin)
+    assert(jl.left.size >= 1 && jl.right.size >= 1)
+    ()
+  }.ensuring(jl.height >= 2)
 
   // extend the following basic list functions
   extension[T](jl: JoinList[T]) {
@@ -119,7 +128,15 @@ object JoinListObject {
       // Check if a JoinList is empty
       jl match {
         case Empty() => true
-        case _ false
+        case _ => false
+      }
+    }
+
+    def isJoin: Boolean = {
+      // Check if a JoinList is of shape Join(l, r)
+      jl match {
+        case Join(l, r) => true
+        case _ => false
       }
     }
 
@@ -132,6 +149,30 @@ object JoinListObject {
       }
     }.ensuring(_ == jl.toList.head)
 
+    def :+(v: T): JoinList[T] = {
+      // append an element, return a new (balanced) JoinList
+      jl match {
+        case Empty() => Single(v) // this is the only element
+        case Single(x) => Join(jl, Single(v)) // 2-element list
+        case Join(l, r) => {
+          val newr = r :+ v // for sure insert to right
+          assert(l.height >= 1) // non-empty has height >= 1
+          assert(newr.height <= r.height + BigInt(1) && newr.height >= r.height) // insert would at most result it height + 1, at least the same height
+          if (BigInt(-1) <= l.height - newr.hight && l.height - newr.hight <= BigInt(1)) then Join(l, newr)
+          else {
+            assert(l.height - newr.height == -2 && newr.height == r.height + 1)
+            assert(newr.isJoin) // because height > 1
+            // newr must be a Join
+            Join(Join(l, newr.left), newr.right)
+          }
+        }
+      }
+    }.ensuring(_ == jl.toList :+ v)
+
+    // def ::(v: T): JoinList[T] = {
+    //   // prepend
+      
+    // }
     // def tail: JoinList[T] = {
     //   // Return the tail JoinList of the given list only work on non-empty list
     //   require(!jl.isEmpty)
@@ -155,11 +196,13 @@ object JoinListObject {
   // ...... maybe more in.
   // extension[T](jl: JoinList(T)) {
   //   def ++(other: JoinList[T]): JoinList[T] = {
-  //     jl match {
-  //       case Empty() => other
-  //       case 
+  //     if (jl.isEmpty) then other // if self is empty, just return the other 
+  //     else if (other.isEmpty) then jl // if other is empty, just return self
+  //     else {
+  //       // if neither are empty, insert the shorter to the taller
+  //       if (jl.height >= other.height)
   //     }
-  //   } 
+  //   }.ensuring(_.toList == jl.toList ++ other.toList)
   // }
 
   // 4. should have a self-balancing version of Shunt Tree, but don't know how to do it yet, should we have a balanced topology tree? 
