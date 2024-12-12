@@ -63,13 +63,9 @@ object ShuntTreeObject {
 
   
     def toList: List[A] = {
-      
       t match {
         case T(value) => List(value)
         case N(left, middle, right) => left.toList ++ middle.toList ++ right.toList
-
-
-
       }
     }
     def size: BigInt = {
@@ -84,10 +80,6 @@ object ShuntTreeObject {
         case N(left, middle, right) => 1 + (left.height max middle.height max right.height)
       }
     }
-    
-
-  
-    
   }
    
   
