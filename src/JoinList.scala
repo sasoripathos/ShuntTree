@@ -114,6 +114,32 @@ object JoinListObject {
         case Join(l, r) => l.contains(x) || r.contains(x) 
       }
     }.ensuring(_ == jl.toList.contains(x))
+
+    def isEmpty: Boolean = {
+      // Check if a JoinList is empty
+      jl match {
+        case Empty() => true
+        case _ false
+      }
+    }
+
+    def head: T = {
+      // Return the first element of the JoinList, only work on non-empty list
+      require(!jl.isEmpty)
+      jl match {
+        case Single(x) => x
+        case Join(l, r) => l.head
+      }
+    }.ensuring(_ == jl.toList.head)
+
+    // def tail: JoinList[T] = {
+    //   // Return the tail JoinList of the given list only work on non-empty list
+    //   require(!jl.isEmpty)
+    //   jl match {
+    //     case Single(x) => Empty[T]() // Single element has an empty tail
+    //     case Join(l, r) => l.tail ++ 
+    //   }
+    // }
   }
   
   // 2. Should implement and prove common list aggregation operations, including but not limited to
