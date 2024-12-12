@@ -163,6 +163,7 @@ object JoinListObject {
             assert(l.height - newr.height == -2 && newr.height == r.height + 1)
             assert(newr.isJoin) // because height > 1
             // newr must be a Join
+            assert(BigInt(-1) <= l.height - newr.left.height && l.height - newr.left.height <= BigInt(1))
             Join(Join(l, newr.left), newr.right)
           }
         }
