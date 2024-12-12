@@ -68,7 +68,22 @@ object JoinListObject {
       }
     }.ensuring(_ == jl.toList.apply(i))
 
-    // TODO:  check the scala/stainless docs, maybe there are many others can do ......
+    def content: Set[T] = {
+      // Get the set of elements in the JoinList
+      jl match {
+        case Empty() => Set[T]()
+        case Single(x) => Set(x)
+        case Join(l, r) => l.content ++ r.content // set union
+      }
+    }.ensuring(_ == jl.toList.content)
+
+    def contains(x: T): Boolean = {
+      jl match {
+        case Empty() => false
+        case Single(y) => y == x
+        case Join(l, r) => l.contains(x) || r.contains(x) 
+      }
+    }.ensuring(_ == jl.toList.contains(x))
   }
   
   // 2. Should implement and prove common list aggregation operations, including but not limited to
