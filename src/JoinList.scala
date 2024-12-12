@@ -40,13 +40,23 @@ object JoinListObject {
     def isBalanced: Boolean = {
       jl match {
         case Join(l, r) => l.isBalanced && r.isBalanced // both child are balanced, constructor ensured the hight differences
-        case _ => True // true for empty and single node
+        case _ => true // true for empty and single node
       }
     }
   }
 
   // Proof for tree properties
-  def joinListIsAlwaysBalanced(jl: JoinList[T]): Unit = {
+  def joinListIsAlwaysBalanced[T](jl: JoinList[T]): Unit = {
+    jl match {
+      case Join(l, r) => {
+        joinListIsAlwaysBalanced(l)
+        joinListIsAlwaysBalanced(r)
+      } // both child are balanced, constructor ensured the hight differences
+      case _ => {
+        assert(jl.isBalanced)
+        ()
+      } // true for empty and single node
+    }
   }.ensuring(jl.isBalanced)
 
   // extend the following basic list functions
