@@ -33,9 +33,11 @@ object ShuntTreeObject {
   // - height: BigInt
   // - apply(i), get element at index i
   // ...... check the scala docs, maybe there are many others can do ......
-  
+  def max(a: BigInt, b: BigInt): BigInt = if (a > b) a else b
   
   extension[A, B](c: ShuntContext[A, B]) {
+
+
     def toList: List[A] = {
       c match {
         case H(_) => List()
@@ -50,13 +52,23 @@ object ShuntTreeObject {
         case R(left, middle, right) => left.size + middle.size + right.size
       }
     }
-    def height: BigInt = {
-      c match {
-        case H(_) => 0
-        case L(left, middle, right) => 1 + (left.height max middle.height max right.height)
-        case R(left, middle, right) => 1 + (left.height max middle.height max right.height)
-      }
+    
+
+  def height: BigInt = {
+    c match {
+      case H(_) => 0
+      case L(left, middle, right) =>
+        1 + max(left.height, max(middle.height, right.height))
+      case R(left, middle, right) =>
+        1 + max(left.height, max(middle.height, right.height))
     }
+  }
+
+
+
+
+
+
   }
 
   extension[A, B](t: ShuntTree[A, B]) {
@@ -77,10 +89,15 @@ object ShuntTreeObject {
     def height: BigInt = {
       t match {
         case T(_) => 1
-        case N(left, middle, right) => 1 + (left.height max middle.height max right.height)
+        case N(left, middle, right) =>
+          1 + max(left.height, max(middle.height, right.height))
       }
     }
+    
   }
+
+
+
    
   
   // 2. Should implement and prove common list aggregation operations, including but not limited to
