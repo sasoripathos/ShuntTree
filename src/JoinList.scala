@@ -61,7 +61,7 @@ object JoinListObject {
     }
   }.ensuring(jl.isBalanced)
 
-  // p2: a JoinList with element has at least size >= 1
+  // p2: a JoinList with element has at least size 1
   def sizeForNonEmpty[T](jl: JoinList[T]): Unit = {
     require(!jl.isEmpty)
     jl match {
@@ -78,17 +78,35 @@ object JoinListObject {
     }
   }.ensuring(jl.size >= BigInt(1))
 
-  // // P3: a JoinList with at least 2 element has at least hight 2
-  // def hightForAtLeastTwoElement[T](jl: JoinList[T]): Unit = {
-  //   require(jl.size >= BigInt(2))
-  //   assert(jl.isJoin)
-  //   jl match {
-  //     case Join(l, r) => {
-  //       assert(l.size >= 1 && r.size >= 1)
-  //       ()
-  //     }
-  //   }
-  // }.ensuring(jl.height >= 2)
+  // P3: a JoinList with element has at least hight 1
+  def heightForNonEmpty[T](jl: JoinList[T]): Unit = {
+    require(!jl.isEmpty)
+    jl match {
+      case Single(x) => {
+        assert(jl.height == BigInt(1))
+        ()
+      }
+      case Join(l, r) => {
+        heightForNonEmpty(l)
+        heightForNonEmpty(r)
+        assert(jl.height >= BigInt(1))
+      }
+    }
+  }.ensuring(jl.height >= BigInt(1))
+
+  // P4: a JoinList with at least 2 element has at least hight 2
+  def heightForAtLeastTwoElement[T](jl: JoinList[T]): Unit = {
+    require(jl.size >= BigInt(2))
+    assert(jl.isJoin)
+    jl match {
+      case Join(l, r) => {
+        heightForNonEmpty(l)
+        heightForNonEmpty(r)
+        assert(jl.height >= BigInt(1) + BigInt(1))
+        ()
+      }
+    }
+  }.ensuring(jl.height >= BigInt(2))
 
   // extend the following basic list functions
   extension[T](jl: JoinList[T]) {
@@ -172,7 +190,11 @@ object JoinListObject {
     //   // append an element, return a new (balanced) JoinList
     //   jl match {
     //     case Empty() => Single(v) // this is the only element
-    //     case Single(x) => Join(jl, Single(v)) // 2-element list
+    //     case Single(x) => { // 2-element list
+    //       assert(Single(v).size == jl.size)
+    //       assert(Single(v).size > 0)
+    //       Join(jl, Single(v)) 
+    //     }
     //     case Join(l, r) => {
     //       val newr = r :+ v // for sure insert to right
     //       assert(l.height >= 1) // non-empty has height >= 1
