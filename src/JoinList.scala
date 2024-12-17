@@ -8,6 +8,25 @@ object JoinListObject {
   def max(x: BigInt, y: BigInt) = if x >= y then x else y
   def abs(x: BigInt) = if BigInt(0) > x then -x else x
 
+  // helper proof for Stainless list
+  def listTailOfConcat[T](l1: List[T], l2: List[T]): Unit = {
+    require(!l1.isEmpty)
+    if (l2.isEmpty) then {
+      ListSpecs.rightUnitAppend(l1)
+      ()
+    } else {
+      l1 match {
+        case Cons(x, xs) => {
+          assert(l1 == x :: xs) // by definition
+          assert(l1 ++ l2 == Cons(x, xs ++ l2)) // by definition
+          assert((l1 ++ l2).tail == xs ++ l2)
+          assert(l1.tail == xs)
+          ()
+        }
+      }
+    }
+  }.ensuring((l1 ++ l2).tail == l1.tail ++ l2)
+
   // JoinList[T]
   sealed abstract class JoinList[T]
   // Add one case for empty list
@@ -135,13 +154,26 @@ object JoinListObject {
       require(!jl.isEmpty)
       jl match {
         case Single(_) => Empty[T]() // single element, then tail is empty
-        case JoinList(l, r) => {
-          l.tail ++ r
+        case Join(l, r) => {
+          assert(!l.isEmpty)
+          l match {
+            case Single(_) => {
+              assert(l.tail.isEmpty)
+              ListSpecs.leftUnitAppend(r.toList)
+              r
+            }
+            case Join(ll, lr) => {
+              sizeForNonEmpty(l)
+              listTailOfConcat(l.toList, r.toList) // (l ++ r).tail == l.tail + r
+              l.tail.concat(r)
+            }
+          }
+          
         }
       }
-    }.ensuring(_ == jl.toList.tail)
+    }.ensuring(_.toList == jl.toList.tail)
 
-    // naive concat
+    // naive concat, unbalanced version
     def concat(other: JoinList[T]): JoinList[T] = {
       if (jl.isEmpty) then other
       else if (other.isEmpty) then jl
