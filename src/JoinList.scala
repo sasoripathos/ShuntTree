@@ -130,6 +130,17 @@ object JoinListObject {
       jl.apply(BigInt(0))
     }.ensuring(_ == jl.toList.head)
 
+    def tail: JoinList[T] = {
+      // Return the tail of JoinList, which is the list without the first element
+      require(!jl.isEmpty)
+      jl match {
+        case Single(_) => Empty[T]() // single element, then tail is empty
+        case JoinList(l, r) => {
+          l.tail ++ r
+        }
+      }
+    }.ensuring(_ == jl.toList.tail)
+
     // naive concat
     def concat(other: JoinList[T]): JoinList[T] = {
       if (jl.isEmpty) then other
@@ -152,6 +163,8 @@ object JoinListObject {
   extension[T](jl: JoinList[T]) {
 
     def ++(other: JoinList[T]): JoinList[T] = {
+      // Prove that: if 2 Join List are balanced, we can concat them and form another balanced Join List whose height
+      // grows at most 1
       require(jl.isBalanced && other.isBalanced)
       decreases(abs(jl.height - other.height))
       if (jl.isEmpty) then other // if self is empty, just return the other 
