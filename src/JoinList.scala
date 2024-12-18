@@ -128,6 +128,18 @@ object JoinListObject {
       }
     }.ensuring(_.toList == t :: jl.toList)
     
+    def :+(t: T): JoinList[T] = {
+      // Append an element to JoinList
+      jl match {
+        case Empty() => Single(t)
+        case Single(x) => Join(jl, Single(t))
+        case Join(l, r) => {
+          val newr = r :+ t
+          ListSpecs.snocAfterAppend(l.toList, newr.toList)
+          l ++ newr
+        }
+      }
+    }.ensuring(_.toList == jl.toList :+ t)
   }
   
   // 2. Should implement and prove common list aggregation operations, including but not limited to
