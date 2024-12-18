@@ -46,4 +46,23 @@ object Helper {
       }
     }
   }.ensuring((l1 ++ l2).foldLeft(basecase)(f) == l2.foldLeft(l1.foldLeft(basecase)(f))(f))
+
+  def distributiveOfMap[T, R](l1: List[T], l2: List[T], f: T => R): Unit = {
+    if (l1.isEmpty) then {
+      assert(l1 ++ l2 == l2)
+      assert(l1.map(f) == Nil[R]())
+      ()
+    } else if (l2.isEmpty) then {
+      assert(l1 ++ l2 == l1)
+      assert(l2.map(f) == Nil[R]())
+      ()
+    } else {
+      l1 match {
+        case Cons(x, xs) => {
+          assert((l1 ++ l2).map(f) == f(x) :: (xs ++ l2).map(f)) // by definition
+          distributiveOfMap(xs, l2, f)
+        }
+      }
+    }
+  }.ensuring((l1 ++ l2).map(f) == l1.map(f) ++ l2.map(f))
 }

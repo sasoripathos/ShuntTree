@@ -165,10 +165,11 @@ object JoinListObject {
         case Empty() => Empty[R]()
         case Single(x) => Single(f(x))
         case Join(l, r) => {
+          distributiveOfMap(l.toList, r.toList, f)
           l.map(f) ++ r.map(f)
         }
       }
-    }.ensuring(_ == jl.toList.map(f))
+    }.ensuring(_.toList == jl.toList.map(f))
 
     // This sum is following the list homomorphism scheme
     // def sum(combine: (R, R) => R, convert: T => R, basecase: R): R = {
@@ -185,7 +186,7 @@ object JoinListObject {
     // }.ensuring(_ == jl.toList.map(convert).foldLeft(basecase)(combine))
   }
 
-  // 3. some more advanced list operations
+  // 3. some more advanced list operations, different between simple and balanced version
   // - ++ && ++:
   // foldl, foldr?
   // ...... maybe more in.
