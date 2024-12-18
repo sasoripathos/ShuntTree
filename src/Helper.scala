@@ -2,7 +2,7 @@ import stainless.lang.*
 import stainless.collection.*
 import stainless.annotation.*
 
-object UtilsObject {
+object Helper {
 
   // Helper funtions for proof
   def max(x: BigInt, y: BigInt) = if x >= y then x else y
