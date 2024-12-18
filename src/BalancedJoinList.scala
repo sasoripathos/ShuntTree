@@ -175,6 +175,28 @@ object BalancedJoinListObject {
   // - zip
   // - ......
   // But maybe, can we prove the thing in a general way? i.e. + only works if it operates on addable data type
+  extension[T, R](jl: JoinList[T]) {
+    def foldLeft(z: R)(f: (R, T) => R): R = {
+      jl match {
+        case Empty() => z
+        case Single(x) => f(z, x)
+        case Join(l, r) => {
+          listFoldLeftCombine(l.toList, r.toList, f, z)
+          r.foldLeft(l.foldLeft(z)(f))(f)
+        }
+      }
+    }
+    // def sum(combine: (R, R) => R, convert: T => R, basecase: R): R = {
+    //   jl match {
+    //     case Empty() => basecase
+    //     case Single(x) => combine(basecase, convert(x))
+    //     case Join(l, r) => {
+    //       // Unsure about this, maybe try foldl first
+    //       r.sum(combine, convert, l.sum(combine, convert, basecase))
+    //     }
+    //   }
+    // }.ensuring(_ == jl.toList.map(convert).foldLeft(basecase)(combine))
+  }
 
   // 3. some more advanced list operations
   // - ++ && ++:

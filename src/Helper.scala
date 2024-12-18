@@ -27,4 +27,23 @@ object Helper {
       }
     }
   }.ensuring((l1 ++ l2).tail == l1.tail ++ l2)
+
+  def listFoldLeftCombine[T, R](l1: List[T], l2: List[T], f: (R, T) => R, basecase: R): Unit = {
+    if (l1.isEmpty) then {
+      assert(l1 ++ l2 == l2)
+      assert(l1.foldLeft(basecase)(f) == basecase)
+      ()
+    } else if (l2.isEmpty) then {
+      assert(l1 ++ l2 == l1)
+      assert(l2.foldLeft(l1.foldLeft(basecase)(f))(f) == l1.foldLeft(basecase)(f))
+      ()
+    } else {
+      l1 match {
+        case Cons(x, xs) => {
+          assert((l1 ++ l2).foldLeft(basecase)(f) == (xs ++ l2).foldLeft(f(basecase, x))(f)) // by definition
+          listFoldLeftCombine(xs, l2, f, f(basecase, x))
+        }
+      }
+    }
+  }.ensuring((l1 ++ l2).foldLeft(basecase)(f) == l2.foldLeft(l1.foldLeft(basecase)(f))(f))
 }
