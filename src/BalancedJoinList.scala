@@ -17,7 +17,8 @@ object BalancedJoinListObject {
   case class Join[T](left: JoinList[T], right: JoinList[T]) extends JoinList[T] {
     require(
       left != Empty[T]() && right != Empty[T]() // as define in the paper, left and right cannot be empty
-      BigInt(-1) <= left.height - right.height && left.height - right.height <= BigInt(1) // require balanced
+      && BigInt(-1) <= left.height - right.height && left.height - right.height <= BigInt(1) // require balanced
+      // by recursivly of require(), left and right must also be balanced, proved in isBalanced
     )
   }
 
@@ -32,13 +33,17 @@ object BalancedJoinListObject {
       }
     }.ensuring(_ >= BigInt(0)) // height must >= 0
 
-    // def isBalanced: Boolean = {
-    //   jl match {
-    //     case Join(l, r) => BigInt(-1) <= l.height - r.height && l.height - r.height <= BigInt(1) && l.isBalanced && r.isBalanced // both child are balanced, constructor ensured the hight differences
-    //     case _ => true // true for empty and single node
-    //   }
-    // }
-    // def isBalanced: Boolean = true // now it is always balanced
+    def isBalanced: Boolean = {
+      jl match {
+        case Join(l, r) => {
+          // constructor ensured the hight differences
+          assert(BigInt(-1) <= l.height - r.height && l.height - r.height <= BigInt(1))
+          // tree is balanced as long as both child are balanced
+          l.isBalanced && r.isBalanced
+        }
+        case _ => true // true for empty and single node
+      }
+    }.ensuring(_ == true) // A JoinList by definition is always balanced
   }
 
 
@@ -152,10 +157,10 @@ object BalancedJoinListObject {
   extension[T](jl: JoinList[T]) {
 
     def ++(other: JoinList[T]): JoinList[T] = {
-      // Prove that: if 2 Join List are balanced, we can concat them and form another balanced Join List whose height
-      // grows at most 1
-      // require(jl.isBalanced && other.isBalanced)
+      // Prove that: we can concat 2 balanced JoinList and form another balanced Join List whose height grows at most 1
       decreases(abs(jl.height - other.height))
+      // Input must have been balanced
+      assert(jl.isBalanced && other.isBalanced)
       if (jl.isEmpty) then other // if self is empty, just return the other 
       else if (other.isEmpty) then jl // if other is empty, just return self
       else {
@@ -217,7 +222,7 @@ object BalancedJoinListObject {
       }
     }.ensuring( res => (
       res.toList == jl.toList ++ other.toList
-      // && res.isBalanced // list is balanced and order is preserved
+      && res.isBalanced // list is balanced and order is preserved, balanced has been proved
       && res.height <= max(jl.height, other.height) + 1 // result height is bounded
       && res.height >= max(jl.height, other.height)
     ))
@@ -247,5 +252,4 @@ object BalancedJoinListObject {
       }
     }
   }.ensuring(jl.size >= BigInt(1))
-
 }
