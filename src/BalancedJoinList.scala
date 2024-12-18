@@ -118,29 +118,29 @@ object BalancedJoinListObject {
       jl.apply(BigInt(0))
     }.ensuring(_ == jl.toList.head)
 
-    // def tail: JoinList[T] = {
-    //   // Return the tail of JoinList, which is the list without the first element
-    //   require(!jl.isEmpty)
-    //   jl match {
-    //     case Single(_) => Empty[T]() // single element, then tail is empty
-    //     case Join(l, r) => {
-    //       assert(!l.isEmpty)
-    //       l match {
-    //         case Single(_) => {
-    //           assert(l.tail.isEmpty)
-    //           ListSpecs.leftUnitAppend(r.toList)
-    //           r
-    //         }
-    //         case Join(ll, lr) => {
-    //           sizeForNonEmpty(l)
-    //           listTailOfConcat(l.toList, r.toList) // (l ++ r).tail == l.tail + r
-    //           l.tail.concat(r)
-    //         }
-    //       }
+    def tail: JoinList[T] = {
+      // Return the tail of JoinList, which is the list without the first element
+      require(!jl.isEmpty)
+      jl match {
+        case Single(_) => Empty[T]() // single element, then tail is empty
+        case Join(l, r) => {
+          assert(!l.isEmpty)
+          l match {
+            case Single(_) => {
+              assert(l.tail.isEmpty)
+              ListSpecs.leftUnitAppend(r.toList)
+              r
+            }
+            case Join(ll, lr) => {
+              sizeForNonEmpty(l)
+              listTailOfConcat(l.toList, r.toList) // (l ++ r).tail == l.tail + r
+              l.tail ++ r
+            }
+          }
           
-    //     }
-    //   }
-    // }.ensuring(_.toList == jl.toList.tail)
+        }
+      }
+    }.ensuring(_.toList == jl.toList.tail)
   }
   
   // 2. Should implement and prove common list aggregation operations, including but not limited to
