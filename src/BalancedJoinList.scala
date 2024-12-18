@@ -185,7 +185,7 @@ object BalancedJoinListObject {
           r.foldLeft(l.foldLeft(z)(f))(f)
         }
       }
-    }
+    }.ensuring(_ == jl.toList.foldLeft(z)(f))
     // def sum(combine: (R, R) => R, convert: T => R, basecase: R): R = {
     //   jl match {
     //     case Empty() => basecase

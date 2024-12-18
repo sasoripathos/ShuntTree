@@ -158,11 +158,26 @@ object JoinListObject {
           r.foldLeft(l.foldLeft(z)(f))(f)
         }
       }
-    }
-    // def sum(combine: (R, R) => R, convert: T => R, basecase: R): R = {
+    }.ensuring(_ == jl.toList.foldLeft(z)(f))
+
+    // def map(f: T => R): JoinList[R] = {
     //   jl match {
+    //     case Empty() => z
+    //     case Single(x) => f(z, x)
+    //     case Join(l, r) => {
+    //       listFoldLeftCombine(l.toList, r.toList, f, z)
+    //       r.foldLeft(l.foldLeft(z)(f))(f)
+    //     }
+    //   }
+    // }
+
+    // This sum is following the list homomorphism scheme
+    // def sum(combine: (R, R) => R, convert: T => R, basecase: R): R = {
+    //   val updatedjl = jl.map(convert) // should be of type JoinList[R]
+
+    //   updatedjl match {
     //     case Empty() => basecase
-    //     case Single(x) => combine(basecase, convert(x))
+    //     case Single(x) => combine(basecase, x)
     //     case Join(l, r) => {
     //       // Unsure about this, maybe try foldl first
     //       r.sum(combine, convert, l.sum(combine, convert, basecase))
