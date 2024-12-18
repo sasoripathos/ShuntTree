@@ -118,15 +118,15 @@ object JoinListObject {
       // Prepend an element to JoinList
       jl match {
         case Empty() => Single(t)
-        case Single(x) = Join(Single(t), jl)
+        case Single(x) => Join(Single(t), jl)
         case Join(l, r) => {
-          val newl = t :: l
+          val newl = l :: t
           assert(newl.toList == Cons(t, l.toList))
           ListSpecs.reverseAppend(newl.toList, r.toList)
           newl ++ r
         }
       }
-    }.ensuring(_.toList = t :: jl.toList)
+    }.ensuring(_.toList == t :: jl.toList)
     
   }
   
