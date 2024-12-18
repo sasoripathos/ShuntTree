@@ -20,7 +20,7 @@ object JoinListObject {
   }
 
 
-  // extend the following basic list functions
+  // extend the following basic list functions, should be the same implementation between simple and balanced version
   extension[T](jl: JoinList[T]) {
     def toList: List[T] = {
       // Turn a JoinList to a stainless List
@@ -139,14 +139,26 @@ object JoinListObject {
         }
       }
     }.ensuring(_.toList == jl.toList :+ t)
+
   }
-  
-  // 2. Should implement and prove common list aggregation operations, including but not limited to
+
+  // 2. extend common list aggregation operations
   // - sum
   // - map
   // - zip
   // - ......
   // But maybe, can we prove the thing in a general way? i.e. + only works if it operates on addable data type
+  extension[T, R](jl: JoinList[T]) {
+    def sum(combine: (R, R) => R, convert: T => R, basecase: R): R = {
+      jl match {
+        case Empty() => basecase
+        case Single(x) => convert(x)
+        case Join(l, r) => {
+          r.sum(combine, convert, l.sum(combine, convert, basecase))
+        }
+      }
+    }.ensuring(_ == jl.toList.map(convert).foldLeft(basecase)(combine))
+  }
 
   // 3. some more advanced list operations
   // - ++ && ++:
