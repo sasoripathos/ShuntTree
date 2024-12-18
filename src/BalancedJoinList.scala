@@ -169,7 +169,7 @@ object BalancedJoinListObject {
     }.ensuring(_.toList == jl.toList :+ t)
   }
   
-  // 2. Should implement and prove common list aggregation operations, including but not limited to
+  // 2. extend common list aggregation operations
   // - sum
   // - map
   // - zip
