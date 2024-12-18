@@ -114,7 +114,19 @@ object JoinListObject {
       }
     }.ensuring(_.toList == jl.toList.tail)
 
-    // naive concat, unbalanced version
+    def ::(t: T): JoinList[T] = {
+      // Prepend an element to JoinList
+      jl match {
+        case Empty() => Single(t)
+        case Single(x) = Join(Single(t), jl)
+        case Join(l, r) => {
+          val newl = t :: l
+          assert(newl.toList == Cons(t, l.toList))
+          ListSpecs.reverseAppend(newl.toList, r.toList)
+          newl ++ r
+        }
+      }
+    }.ensuring(_.toList = t :: jl.toList)
     
   }
   
