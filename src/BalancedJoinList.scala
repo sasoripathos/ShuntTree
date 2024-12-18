@@ -162,9 +162,8 @@ object BalancedJoinListObject {
         case Empty() => Single(t)
         case Single(x) => Join(jl, Single(t))
         case Join(l, r) => {
-          val newr = r :+ t
-          ListSpecs.snocAfterAppend(l.toList, newr.toList)
-          l ++ newr
+          ListSpecs.snocAfterAppend(l.toList, r.toList, t)
+          l ++ (r :+ t)
         }
       }
     }.ensuring(_.toList == jl.toList :+ t)
