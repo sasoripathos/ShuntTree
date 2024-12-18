@@ -160,16 +160,15 @@ object JoinListObject {
       }
     }.ensuring(_ == jl.toList.foldLeft(z)(f))
 
-    // def map(f: T => R): JoinList[R] = {
-    //   jl match {
-    //     case Empty() => z
-    //     case Single(x) => f(z, x)
-    //     case Join(l, r) => {
-    //       listFoldLeftCombine(l.toList, r.toList, f, z)
-    //       r.foldLeft(l.foldLeft(z)(f))(f)
-    //     }
-    //   }
-    // }
+    def map(f: T => R): JoinList[R] = {
+      jl match {
+        case Empty() => Empty[R]()
+        case Single(x) => Single(f(x))
+        case Join(l, r) => {
+          l.map(f) ++ r.map(f)
+        }
+      }
+    }.ensuring(_ == jl.toList.map(f))
 
     // This sum is following the list homomorphism scheme
     // def sum(combine: (R, R) => R, convert: T => R, basecase: R): R = {

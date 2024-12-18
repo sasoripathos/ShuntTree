@@ -186,6 +186,17 @@ object BalancedJoinListObject {
         }
       }
     }.ensuring(_ == jl.toList.foldLeft(z)(f))
+
+    def map(f: T => R): JoinList[R] = {
+      jl match {
+        case Empty() => Empty[R]()
+        case Single(x) => Single(f(x))
+        case Join(l, r) => {
+          l.map(f) ++ r.map(f)
+        }
+      }
+    }.ensuring(_ == jl.toList.map(f))
+
     // def sum(combine: (R, R) => R, convert: T => R, basecase: R): R = {
     //   jl match {
     //     case Empty() => basecase
