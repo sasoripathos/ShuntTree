@@ -204,6 +204,15 @@ object JoinListObject {
         else jl.size - i
       ))
     }
+
+    def slice(from: BigInt, to: BigInt): JoinList[T] = {
+      require(0 <= from && from <= to && to <= jl.size)
+
+      jl.drop(from).take(to - from)
+    }.ensuring { res =>
+      res.toList.content.subsetOf(jl.toList.content) &&
+      res.size == (to - from)
+    }
     
   }
 
