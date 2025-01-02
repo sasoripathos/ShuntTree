@@ -256,6 +256,41 @@ object JoinListObject {
       }
     }.ensuring(_.toList == jl.toList.map(f))
 
+/*
+    def zip(that: JoinList[R]): JoinList[(T, R)] = {
+      decreases(jl) // Specifica la misura
+      (jl, that) match {
+        case (Empty(), _) => 
+          Empty[(T, R)]()
+        case (_, Empty()) => 
+          Empty[(T, R)]()
+        case (Single(x), Single(y)) =>
+          Single((x, y))
+        case (Join(l1, r1), Join(l2, r2)) =>
+          val leftZip = l1.zip(l2)
+          val rightZip = r1.zip(r2)
+          distributiveOfZip(l1.toList, l2.toList)
+          distributiveOfZip(r1.toList, r2.toList)
+          Join(leftZip, rightZip)
+        case (Join(l, r), Single(y)) =>
+          val leftZip = l.zip(Single(y))
+          val rightZip = r.zip(Single(y))
+          distributiveOfZip(l.toList, List(y))
+          distributiveOfZip(r.toList, List(y))
+          Join(leftZip, rightZip)
+        case (Single(x), Join(l, r)) =>
+          val leftZip = Single(x).zip(l)
+          val rightZip = Single(x).zip(r)
+          distributiveOfZip(List(x), l.toList)
+          distributiveOfZip(List(x), r.toList)
+          Join(leftZip, rightZip)
+      }
+}.ensuring { res =>
+  res.size == (if (jl.size <= that.size) jl.size else that.size) &&
+    res.toList == jl.toList.zip(that.toList)
+}
+    */
+
     // // This aggregation assumes following list homomorphism scheme, only works on non-empty case
     // def aggregation(combine: (R, R) => R, convert: T => R): R = {
     //   // Precondition 1: the combine is associative

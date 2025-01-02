@@ -139,6 +139,32 @@ object Helper {
     }
   }.ensuring((l1 ++ l2).map(f) == l1.map(f) ++ l2.map(f))
 
+  /*
+  def distributiveOfZip[T, R](l1: List[T], l2: List[R]): Unit = {
+  if (l1.isEmpty || l2.isEmpty) {
+
+    assert(l1.zip(l2) == Nil[(T, R)]())
+    ()
+  } else {
+    (l1, l2) match {
+      case (Cons(x1, xs1), Cons(x2, xs2)) =>
+
+        assert(l1.zip(l2) == Cons((x1, x2), xs1.zip(xs2)))
+
+        assert(l1.zip(l2).size == (if (l1.size <= l2.size) l1.size else l2.size))
+
+        distributiveOfZip(xs1, xs2)
+    }
+  }
+}.ensuring { res =>
+
+  l1.zip(l2).size == (if (l1.size <= l2.size) l1.size else l2.size)
+}
+  */
+
+
+
+
   // def listHeadWithConcat[T](l1: List[T], l2: List[T]): Unit = {
   //   require(!l1.isEmpty)
   //   l1 match {
