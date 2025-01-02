@@ -330,6 +330,28 @@ object JoinListObject {
       else Join(jl, other)
     }.ensuring(_.toList == jl.toList ++ other.toList)
 
+    def --(that: JoinList[T]): JoinList[T] = {
+    // Remove all elements of `that` from `jl`
+    jl match {
+      case Empty() => Empty[T]()
+      case Single(x) =>
+        if (that.contains(x)) Empty[T]()
+        else Single(x)
+      case Join(l, r) =>
+        val newLeft = l -- that
+        val newRight = r -- that
+        if (newLeft.isEmpty && newRight.isEmpty) Empty[T]()
+        else if (newLeft.isEmpty) newRight
+        else if (newRight.isEmpty) newLeft
+        else Join(newLeft, newRight)
+    }
+    //it do not consider element order here!
+  }.ensuring { res =>
+    res.size <= jl.size && // Ensure the result size is not greater than the original
+    res.content == jl.content -- that.content // Ensure the result content matches the set difference
+  }
+   
+
     // def listCombine(f: (T, T) => T): T = {
     //   // Appling a combine function to list
 
