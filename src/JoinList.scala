@@ -110,7 +110,7 @@ object JoinListObject {
             }
             case Join(ll, lr) => {
               sizeForNonEmpty(l)
-              listTailOfConcat(l.toList, r.toList) // (l ++ r).tail == l.tail + r
+              //listTailOfConcat(l.toList, r.toList) // (l ++ r).tail == l.tail + r
               l.tail ++ r
             }
           }
@@ -144,6 +144,19 @@ object JoinListObject {
         }
       }
     }.ensuring(_.toList == jl.toList :+ t)
+
+    def take(i: BigInt): JoinList[T] = {
+    require(i >= 0) // i must be non-negative
+    jl match {
+      case Empty() => Empty[T]() // If the list is empty, return an empty list
+      case Single(x) =>
+        if (i > 0) Single(x) // If i > 0, return the single element
+        else Empty[T]()      // Otherwise, return an empty list
+      case Join(l, r) =>
+        if (i <= l.size) l.take(i) // If the requested i elements are all in l, call take on l
+        else Join(l, r.take(i - l.size)) // Otherwise, take all of l and continue with r
+    }
+  }.ensuring(_.toList == jl.toList.take(i)) // Ensures the result is correct with respect to the linear list
 
   }
 
@@ -284,6 +297,8 @@ object JoinListObject {
       }
     }
   }.ensuring(jl.size >= BigInt(1))
+
+
 
   // def joinListHeadWithConcat[T](l1: JoinList[T], l2: JoinList[T]): Unit = {
   //   require(!l1.isEmpty)
