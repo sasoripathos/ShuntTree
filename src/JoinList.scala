@@ -145,19 +145,35 @@ object JoinListObject {
       }
     }.ensuring(_.toList == jl.toList :+ t)
 
+  
     def take(i: BigInt): JoinList[T] = {
-    require(i >= 0) // i must be non-negative
-    jl match {
-      case Empty() => Empty[T]() // If the list is empty, return an empty list
-      case Single(x) =>
-        if (i > 0) Single(x) // If i > 0, return the single element
-        else Empty[T]()      // Otherwise, return an empty list
-      case Join(l, r) =>
-        if (i <= l.size) l.take(i) // If the requested i elements are all in l, call take on l
-        else Join(l, r.take(i - l.size)) // Otherwise, take all of l and continue with r
-    }
-  }.ensuring(_.toList == jl.toList.take(i)) // Ensures the result is correct with respect to the linear list
+      require(i >= 0)
 
+      jl match {
+        case Empty() => Empty[T]()
+        case Single(x) =>
+          if (i <= 0) Empty[T]()
+          else Single(x)
+        case Join(l, r) =>
+          if (i <= l.size) l.take(i)
+          else Join(l, r.take(i - l.size))
+      }
+      /*
+    * 1) The content of the result is a subset of the original JoinList's content
+     * 2) The size of the result matches the specified conditions:
+     * 3) If `i <= 0`, the result size is 0
+     * 4) If `i >= jl.size`, the result size equals the size of the original JoinList
+     * 5) Otherwise, the result size equals `i`
+     * */
+    }.ensuring { res =>
+      res.toList.content.subsetOf(jl.toList.content) &&
+      (res.size == (
+        if (i <= 0) BigInt(0)
+        else if (i >= jl.size) jl.size
+        else i
+      ))
+    }
+    
   }
 
   // 2. extend common list aggregation operations
