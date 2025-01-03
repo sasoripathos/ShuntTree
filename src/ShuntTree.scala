@@ -35,6 +35,7 @@ object ShuntTreeObject {
   // ...... check the scala docs, maybe there are many others can do ......
   extension[A, B](t: ShuntTree[A, B]) {
     def toList: List[A] = {
+      
 
     }
 

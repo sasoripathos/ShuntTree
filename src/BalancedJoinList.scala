@@ -171,7 +171,7 @@ object BalancedJoinListObject {
     }.ensuring(_.toList == jl.toList :+ t)
 
     
-
+/*
     //Take the first `i` elements of a JoinList
     def take(i: BigInt): JoinList[T] = {
       require(i >= 0)
@@ -230,6 +230,7 @@ object BalancedJoinListObject {
         else jl.size - i
       ))
     }
+    */
   }
   
   // 2. extend common list aggregation operations
@@ -349,6 +350,30 @@ object BalancedJoinListObject {
       && res.height <= max(jl.height, other.height) + 1 // result height is bounded
       && res.height >= max(jl.height, other.height)
     ))
+
+    def --(other: JoinList[T]): JoinList[T] = {
+    jl match {
+      case Empty() => Empty[T]()
+      case Single(x) =>
+        if (other.contains(x)) Empty[T]()
+        else Single(x)
+      case Join(l, r) =>
+        val newLeft = l -- other
+        val newRight = r -- other
+        if (newLeft.isEmpty && newRight.isEmpty) Empty[T]()
+        else if (newLeft.isEmpty) newRight
+        else if (newRight.isEmpty) newLeft
+        else newLeft.++(newRight)
+    }
+  }.ensuring { res =>
+    res.size <= jl.size && // Ensure the result size is not greater than the original
+    res.content == jl.content -- other.content && // Ensure the result content matches the set difference
+    res.isBalanced // Ensure the result is balanced
+  }
+
+    
+
+    
   }
 
   // 4. should have a self-balancing version of Shunt Tree, but don't know how to do it yet, should we have a balanced topology tree? 
