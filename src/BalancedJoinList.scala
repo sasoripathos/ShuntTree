@@ -142,6 +142,8 @@ object BalancedJoinListObject {
       }
     }.ensuring(_.toList == jl.toList.tail)
 
+    
+
     def ::(t: T): JoinList[T] = {
       // Prepend an element to JoinList
       jl match {
@@ -167,6 +169,67 @@ object BalancedJoinListObject {
         }
       }
     }.ensuring(_.toList == jl.toList :+ t)
+
+    
+
+    //Take the first `i` elements of a JoinList
+    def take(i: BigInt): JoinList[T] = {
+      require(i >= 0)
+
+      jl match {
+        case Empty() => Empty[T]()
+        case Single(x) =>
+          if (i <= 0) Empty[T]()
+          else Single(x)
+        case Join(l, r) =>
+          if (i <= l.size) l.take(i)
+          else Join(l, r.take(i - l.size))
+      }
+      /*
+    * 1) The content of the result is a subset of the original JoinList's content
+     * 2) The size of the result matches the specified conditions:
+     * 3) If `i <= 0`, the result size is 0
+     * 4) If `i >= jl.size`, the result size equals the size of the original JoinList
+     * 5) Otherwise, the result size equals `i`
+     * */
+    }.ensuring { res =>
+      res.toList.content.subsetOf(jl.toList.content) && res.isBalanced &&
+      (res.size == (
+        if (i <= 0) BigInt(0)
+        else if (i >= jl.size) jl.size
+        else i
+      ))
+    }
+
+     //Drop the first `i` elements of a JoinList
+    def drop(i: BigInt): JoinList[T] = {
+      require(i >= 0)
+
+      jl match {
+        case Empty() => Empty[T]()
+        case Single(x) =>
+          if (i <= 0) Single(x)
+          else Empty[T]()
+        case Join(l, r) =>
+          if (i < l.size) Join(l.drop(i), r)
+          else r.drop(i - l.size)
+      }
+
+      /* 
+     * 1) The content of the result is a subset of the original JoinList's content
+     * 2) The size of the result matches the specified conditions:
+     * 3) If `i <= 0`, the result size equals the original JoinList size
+     * 4) If `i >= jl.size`, the result size is 0
+     * 5) Otherwise, the result size equals `jl.size - i`
+       */
+    }.ensuring { res =>
+      res.toList.content.subsetOf(jl.toList.content) &&
+      (res.size == (
+        if (i <= 0) jl.size
+        else if (i >= jl.size) BigInt(0)
+        else jl.size - i
+      ))
+    }
   }
   
   // 2. extend common list aggregation operations

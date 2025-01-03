@@ -26,6 +26,7 @@ object JoinListObject {
     def ==(other: JoinList[T]): Boolean = {
       jl.toList == other.toList
     }
+    
 
     def toList: List[T] = {
       // Turn a JoinList to a stainless List
@@ -146,6 +147,7 @@ object JoinListObject {
     }.ensuring(_.toList == jl.toList :+ t)
 
   
+    
     //Take the first `i` elements of a JoinList
     def take(i: BigInt): JoinList[T] = {
       require(i >= 0)
@@ -351,6 +353,26 @@ object JoinListObject {
     res.content == jl.content -- that.content // Ensure the result content matches the set difference
   }
    
+    def &(that: JoinList[T]): JoinList[T] = {
+      jl match {
+        case Empty() => Empty[T]() // Base case: inters with an empty list is empty
+        case Single(x) =>
+          if (that.contains(x)) Single(x) // If `that` contains the element, include it
+          else Empty[T]() // Otherwise, exclude it
+        case Join(left, right) =>
+          val leftIntersection = left & that // Recursively compute inters for the left subtree
+          val rightIntersection = right & that // Recursively compute intersection for the right subtree
+          // Combine the results
+          if (leftIntersection.isEmpty && rightIntersection.isEmpty) Empty[T]()
+          else if (leftIntersection.isEmpty) rightIntersection
+          else if (rightIntersection.isEmpty) leftIntersection
+          else Join(leftIntersection, rightIntersection)
+      }
+    }.ensuring { res =>
+      res.size <= jl.size && // Result size is not bigger than the original
+        res.content.subsetOf(jl.content) && // Result content is a subset of the original jl
+        res.content.subsetOf(that.content) // Result content is a subset of the other jl
+    }
 
     // def listCombine(f: (T, T) => T): T = {
     //   // Appling a combine function to list
