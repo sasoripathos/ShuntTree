@@ -170,7 +170,59 @@ object BalancedJoinListObject {
       }
     }.ensuring(_.toList == jl.toList :+ t)
 
-    
+    def take(i: BigInt): JoinList[T] = {
+    require(i >= 0)
+
+    jl match {
+      case Empty() => Empty[T]()
+      case Single(x) =>
+        if (i <= 0) Empty[T]()
+        else Single(x)
+      case Join(l, r) =>
+        if (i <= l.size) l.take(i)
+        else l.++(r.take(i - l.size)) // Combine with balancing using ++
+    }
+  }.ensuring { res =>
+    res.toList.content.subsetOf(jl.toList.content) && // Ensure the content is a subset of the original
+    (res.size == (
+      if (i <= 0) BigInt(0)
+      else if (i >= jl.size) jl.size
+      else i
+    )) &&
+    res.isBalanced // Ensure the result is balanced
+  }
+
+    def drop(i: BigInt): JoinList[T] = {
+      require(i >= 0)
+
+      jl match {
+        case Empty() => Empty[T]()
+        case Single(x) =>
+          if (i <= 0) Single(x)
+          else Empty[T]()
+        case Join(l, r) =>
+          if (i < l.size) l.drop(i) ++ r // Combine with balancing using ++
+          else r.drop(i - l.size)
+      }
+    }.ensuring { res =>
+      res.toList.content.subsetOf(jl.toList.content) && // Ensure the content is a subset of the original
+      (res.size == (
+        if (i <= 0) jl.size
+        else if (i >= jl.size) BigInt(0)
+        else jl.size - i
+      )) &&
+      res.isBalanced // Ensure the result is balanced
+    }
+
+    def slice(from: BigInt, to: BigInt): JoinList[T] = {
+      require(0 <= from && from <= to && to <= jl.size)
+
+      jl.drop(from).take(to - from) // Combine drop and take
+    }.ensuring { res =>
+      res.toList.content.subsetOf(jl.toList.content) && // Ensure the content is a subset of the original
+      res.size == (to - from) && // Ensure the size matches the slice range
+      res.isBalanced // Ensure the result is balanced
+    }
 /*
     //Take the first `i` elements of a JoinList
     def take(i: BigInt): JoinList[T] = {
@@ -231,6 +283,8 @@ object BalancedJoinListObject {
       ))
     }
     */
+
+
   }
   
   // 2. extend common list aggregation operations
