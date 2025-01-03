@@ -33,24 +33,95 @@ object ShuntTreeObject {
   // - height: BigInt
   // - apply(i), get element at index i
   // ...... check the scala docs, maybe there are many others can do ......
-  extension[A, B](t: ShuntTree[A, B]) {
+  def max(a: BigInt, b: BigInt): BigInt = if (a > b) a else b
+  
+  extension[A, B](c: ShuntContext[A, B]) {
+
+
     def toList: List[A] = {
-      
-
+      c match {
+        case H(_) => List()
+        case L(left, middle, right) => left.toList ++ middle.toList ++ right.toList
+        case R(left, middle, right) => left.toList ++ middle.toList ++ right.toList
+      }
     }
-
     def size: BigInt = {
-
+      c match {
+        case H(_) => 0
+        case L(left, middle, right) => left.size + middle.size + right.size
+        case R(left, middle, right) => left.size + middle.size + right.size
+      }
     }
+    
 
-    def height: BigInt = {
-
-    }
-
-    def apply(i: BigInt): A = {
-
+  def height: BigInt = {
+    c match {
+      case H(_) => 0
+      case L(left, middle, right) =>
+        1 + max(left.height, max(middle.height, right.height))
+      case R(left, middle, right) =>
+        1 + max(left.height, max(middle.height, right.height))
     }
   }
+
+
+
+
+
+
+  }
+
+  extension[A, B](t: ShuntTree[A, B]) {
+
+  
+    def toList: List[A] = {
+      t match {
+        case T(value) => List(value)
+        case N(left, middle, right) => left.toList ++ middle.toList ++ right.toList
+      }
+    }
+    def size: BigInt = {
+      t match {
+        case T(_) => 1
+        case N(left, middle, right) => left.size + middle.size + right.size
+      }
+    }
+    def height: BigInt = {
+      t match {
+        case T(_) => 1
+        case N(left, middle, right) =>
+          1 + max(left.height, max(middle.height, right.height))
+      }
+    }
+    
+  }
+
+
+/* 2.1!
+Define:
+  -Tip and Bin
+  -Tree (in which we define a simple sum operation)
+  -Shunt
+Implement:
+  -scs
+  -connect
+  -hole
+
+
+  2. agg operations:
+    i)sum: In which we present the modified sum operation
+  ii)zipTree :: ∀α,α,β,β′.Tree αβ→ Tree α′ β′ → Tree (α,α′) (β,β′)
+  zipTree (Tip a) (Tip b) = Tip (a,b)
+  zipTree (Bin t1 at2) (Bin u1 bu2) = Bin (zipTree t1 u1) (a,b) (zipTree t2 u2)
+
+ */
+
+
+
+
+
+
+   
   
   // 2. Should implement and prove common list aggregation operations, including but not limited to
   // - sum
@@ -69,3 +140,4 @@ object ShuntTreeObject {
   // 5. should we support traditional tree operations like insert(+ proper balancing)? Comparing with conq tree, this seems to be an overkill.
 
 }
+
