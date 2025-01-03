@@ -371,6 +371,28 @@ object BalancedJoinListObject {
     res.isBalanced // Ensure the result is balanced
   }
 
+    def &(other: JoinList[T]): JoinList[T] = {
+      jl match {
+        case Empty() => Empty[T]() // Base case: intersection with an empty list is empty
+        case Single(x) =>
+          if (other.contains(x)) Single(x) // If `other` contains the element, include it
+          else Empty[T]() // Otherwise, exclude it
+        case Join(left, right) =>
+          val leftIntersection = left & other // Recursively compute intersection for the left subtree
+          val rightIntersection = right & other // Recursively compute intersection for the right subtree
+          // Combine the results with balancing
+          if (leftIntersection.isEmpty && rightIntersection.isEmpty) Empty[T]()
+          else if (leftIntersection.isEmpty) rightIntersection
+          else if (rightIntersection.isEmpty) leftIntersection
+          else leftIntersection.++(rightIntersection)
+      }
+    }.ensuring { res =>
+      res.size <= jl.size && // Result size is not bigger than the original
+      res.content.subsetOf(jl.content) && // Result content is a subset of the original jl
+      res.content.subsetOf(other.content) && // Result content is a subset of the other jl
+      res.isBalanced // Ensure the result is balanced
+    }
+
     
 
     
