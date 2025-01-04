@@ -39,7 +39,7 @@ object BalancedJoinListObject {
           // constructor ensured the hight differences
           assert(BigInt(-1) <= l.height - r.height && l.height - r.height <= BigInt(1))
           // tree is balanced as long as both child are balanced
-          l.isBalanced && r.isBalanced
+          l.isBalanced && r.isBalanced && BigInt(-1) <= l.height - r.height && l.height - r.height <= BigInt(1)
         }
         case _ => true // true for empty and single node
       }
@@ -304,6 +304,17 @@ object BalancedJoinListObject {
         }
       }
     }.ensuring(_ == jl.toList.foldLeft(z)(f))
+
+    def foldRight(z: R)(f: (T, R) => R): R = {
+      jl match {
+        case Empty() => z
+        case Single(x) => f(x, z)
+        case Join(l, r) => {
+          listFoldRightCombine(l.toList, r.toList, f, z)
+          l.foldRight(r.foldRight(z)(f))(f)
+        }
+      }
+    }.ensuring(_ == jl.toList.foldRight(z)(f))
 
     def map(f: T => R): JoinList[R] = {
       jl match {
