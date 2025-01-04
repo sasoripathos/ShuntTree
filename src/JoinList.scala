@@ -26,6 +26,7 @@ object JoinListObject {
     def ==(other: JoinList[T]): Boolean = {
       jl.toList == other.toList
     }
+    
 
     def toList: List[T] = {
       // Turn a JoinList to a stainless List
@@ -110,7 +111,7 @@ object JoinListObject {
             }
             case Join(ll, lr) => {
               sizeForNonEmpty(l)
-              listTailOfConcat(l.toList, r.toList) // (l ++ r).tail == l.tail + r
+              //listTailOfConcat(l.toList, r.toList) // (l ++ r).tail == l.tail + r
               l.tail ++ r
             }
           }
@@ -145,6 +146,76 @@ object JoinListObject {
       }
     }.ensuring(_.toList == jl.toList :+ t)
 
+  
+    
+    //Take the first `i` elements of a JoinList
+    def take(i: BigInt): JoinList[T] = {
+      require(i >= 0)
+
+      jl match {
+        case Empty() => Empty[T]()
+        case Single(x) =>
+          if (i <= 0) Empty[T]()
+          else Single(x)
+        case Join(l, r) =>
+          if (i <= l.size) l.take(i)
+          else Join(l, r.take(i - l.size))
+      }
+      /*
+    * 1) The content of the result is a subset of the original JoinList's content
+     * 2) The size of the result matches the specified conditions:
+     * 3) If `i <= 0`, the result size is 0
+     * 4) If `i >= jl.size`, the result size equals the size of the original JoinList
+     * 5) Otherwise, the result size equals `i`
+     * */
+    }.ensuring { res =>
+      res.toList.content.subsetOf(jl.toList.content) &&
+      (res.size == (
+        if (i <= 0) BigInt(0)
+        else if (i >= jl.size) jl.size
+        else i
+      ))
+    }
+
+    //Drop the first `i` elements of a JoinList
+    def drop(i: BigInt): JoinList[T] = {
+      require(i >= 0)
+
+      jl match {
+        case Empty() => Empty[T]()
+        case Single(x) =>
+          if (i <= 0) Single(x)
+          else Empty[T]()
+        case Join(l, r) =>
+          if (i < l.size) Join(l.drop(i), r)
+          else r.drop(i - l.size)
+      }
+
+      /* 
+     * 1) The content of the result is a subset of the original JoinList's content
+     * 2) The size of the result matches the specified conditions:
+     * 3) If `i <= 0`, the result size equals the original JoinList size
+     * 4) If `i >= jl.size`, the result size is 0
+     * 5) Otherwise, the result size equals `jl.size - i`
+       */
+    }.ensuring { res =>
+      res.toList.content.subsetOf(jl.toList.content) &&
+      (res.size == (
+        if (i <= 0) jl.size
+        else if (i >= jl.size) BigInt(0)
+        else jl.size - i
+      ))
+    }
+
+    def slice(from: BigInt, to: BigInt): JoinList[T] = {
+      require(0 <= from && from <= to && to <= jl.size)
+
+      jl.drop(from).take(to - from)
+    }.ensuring { res =>
+      res.toList.content.subsetOf(jl.toList.content) &&
+      res.size == (to - from)
+    }
+    
   }
 
   // 2. extend common list aggregation operations
@@ -187,6 +258,41 @@ object JoinListObject {
       }
     }.ensuring(_.toList == jl.toList.map(f))
 
+/*
+    def zip(that: JoinList[R]): JoinList[(T, R)] = {
+      decreases(jl) // Specifica la misura
+      (jl, that) match {
+        case (Empty(), _) => 
+          Empty[(T, R)]()
+        case (_, Empty()) => 
+          Empty[(T, R)]()
+        case (Single(x), Single(y)) =>
+          Single((x, y))
+        case (Join(l1, r1), Join(l2, r2)) =>
+          val leftZip = l1.zip(l2)
+          val rightZip = r1.zip(r2)
+          distributiveOfZip(l1.toList, l2.toList)
+          distributiveOfZip(r1.toList, r2.toList)
+          Join(leftZip, rightZip)
+        case (Join(l, r), Single(y)) =>
+          val leftZip = l.zip(Single(y))
+          val rightZip = r.zip(Single(y))
+          distributiveOfZip(l.toList, List(y))
+          distributiveOfZip(r.toList, List(y))
+          Join(leftZip, rightZip)
+        case (Single(x), Join(l, r)) =>
+          val leftZip = Single(x).zip(l)
+          val rightZip = Single(x).zip(r)
+          distributiveOfZip(List(x), l.toList)
+          distributiveOfZip(List(x), r.toList)
+          Join(leftZip, rightZip)
+      }
+}.ensuring { res =>
+  res.size == (if (jl.size <= that.size) jl.size else that.size) &&
+    res.toList == jl.toList.zip(that.toList)
+}
+    */
+
     // // This aggregation assumes following list homomorphism scheme, only works on non-empty case
     // def aggregation(combine: (R, R) => R, convert: T => R): R = {
     //   // Precondition 1: the combine is associative
@@ -225,6 +331,48 @@ object JoinListObject {
       else if (other.isEmpty) then jl
       else Join(jl, other)
     }.ensuring(_.toList == jl.toList ++ other.toList)
+
+    def --(that: JoinList[T]): JoinList[T] = {
+    // Remove all elements of `that` from `jl`
+    jl match {
+      case Empty() => Empty[T]()
+      case Single(x) =>
+        if (that.contains(x)) Empty[T]()
+        else Single(x)
+      case Join(l, r) =>
+        val newLeft = l -- that
+        val newRight = r -- that
+        if (newLeft.isEmpty && newRight.isEmpty) Empty[T]()
+        else if (newLeft.isEmpty) newRight
+        else if (newRight.isEmpty) newLeft
+        else Join(newLeft, newRight)
+    }
+    //it do not consider element order here!
+  }.ensuring { res =>
+    res.size <= jl.size && // Ensure the result size is not greater than the original
+    res.content == jl.content -- that.content // Ensure the result content matches the set difference
+  }
+   
+    def &(that: JoinList[T]): JoinList[T] = {
+      jl match {
+        case Empty() => Empty[T]() // Base case: inters with an empty list is empty
+        case Single(x) =>
+          if (that.contains(x)) Single(x) // If `that` contains the element, include it
+          else Empty[T]() // Otherwise, exclude it
+        case Join(left, right) =>
+          val leftIntersection = left & that // Recursively compute inters for the left subtree
+          val rightIntersection = right & that // Recursively compute intersection for the right subtree
+          // Combine the results
+          if (leftIntersection.isEmpty && rightIntersection.isEmpty) Empty[T]()
+          else if (leftIntersection.isEmpty) rightIntersection
+          else if (rightIntersection.isEmpty) leftIntersection
+          else Join(leftIntersection, rightIntersection)
+      }
+    }.ensuring { res =>
+      res.size <= jl.size && // Result size is not bigger than the original
+        res.content.subsetOf(jl.content) && // Result content is a subset of the original jl
+        res.content.subsetOf(that.content) // Result content is a subset of the other jl
+    }
 
     // def listCombine(f: (T, T) => T): T = {
     //   // Appling a combine function to list
@@ -284,6 +432,8 @@ object JoinListObject {
       }
     }
   }.ensuring(jl.size >= BigInt(1))
+
+
 
   // def joinListHeadWithConcat[T](l1: JoinList[T], l2: JoinList[T]): Unit = {
   //   require(!l1.isEmpty)
