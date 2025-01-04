@@ -293,31 +293,6 @@ object JoinListObject {
 }
     */
 
-    // // This aggregation assumes following list homomorphism scheme, only works on non-empty case
-    // def aggregation(combine: (R, R) => R, convert: T => R): R = {
-    //   // Precondition 1: the combine is associative
-    //   require(forall((x: R, y: R, z: R) => combine(combine(x, y), z) == combine(x, combine(y, z))))
-    //   // Precondition 2: the JoinList is not empty
-    //   require(!jl.isEmpty)
-
-    //   jl match {
-    //     case Single(x) => convert(x)
-    //     case Join(l, r) => {
-    //       // listFoldLeftCombine(l.toList.map(convert), r.toList.map(convert), combine, basecase)
-    //       assert(!l.isEmpty && !r.isEmpty)
-    //       assert(l.head == jl.head) // Head of prefix
-    //       distributiveOfMap(l.toList, r.toList, convert) // (l ++ r).map(convert) == l.map ++ r.map
-    //       // val resultl = l.aggregation(combine, convert)
-    //       // val resultr = r.aggregation(combine, convert)
-    //       // r match {
-    //       //   case Single(y) => 
-    //       // }
-    //       combine(l.aggregation(combine, convert), r.aggregation(combine, convert))
-    //     }
-    //   }
-    // }.ensuring(
-    //   _ == jl.tail.map(convert).toList.foldLeft(convert(jl.head))(combine)
-    // )
   }
 
   // 3. some more advanced list operations, different between simple and balanced version
@@ -333,25 +308,25 @@ object JoinListObject {
     }.ensuring(_.toList == jl.toList ++ other.toList)
 
     def --(that: JoinList[T]): JoinList[T] = {
-    // Remove all elements of `that` from `jl`
-    jl match {
-      case Empty() => Empty[T]()
-      case Single(x) =>
-        if (that.contains(x)) Empty[T]()
-        else Single(x)
-      case Join(l, r) =>
-        val newLeft = l -- that
-        val newRight = r -- that
-        if (newLeft.isEmpty && newRight.isEmpty) Empty[T]()
-        else if (newLeft.isEmpty) newRight
-        else if (newRight.isEmpty) newLeft
-        else Join(newLeft, newRight)
+      // Remove all elements of `that` from `jl`
+      jl match {
+        case Empty() => Empty[T]()
+        case Single(x) =>
+          if (that.contains(x)) Empty[T]()
+          else Single(x)
+        case Join(l, r) =>
+          val newLeft = l -- that
+          val newRight = r -- that
+          if (newLeft.isEmpty && newRight.isEmpty) Empty[T]()
+          else if (newLeft.isEmpty) newRight
+          else if (newRight.isEmpty) newLeft
+          else Join(newLeft, newRight)
+      }
+      //it do not consider element order here!
+    }.ensuring { res =>
+      res.size <= jl.size && // Ensure the result size is not greater than the original
+      res.content == jl.content -- that.content // Ensure the result content matches the set difference
     }
-    //it do not consider element order here!
-  }.ensuring { res =>
-    res.size <= jl.size && // Ensure the result size is not greater than the original
-    res.content == jl.content -- that.content // Ensure the result content matches the set difference
-  }
    
     def &(that: JoinList[T]): JoinList[T] = {
       jl match {
@@ -373,38 +348,6 @@ object JoinListObject {
         res.content.subsetOf(jl.content) && // Result content is a subset of the original jl
         res.content.subsetOf(that.content) // Result content is a subset of the other jl
     }
-
-    // def listCombine(f: (T, T) => T): T = {
-    //   // Appling a combine function to list
-
-    //   // Precondition 1: the combine is associative
-    //   require(forall((x: T, y: T, z: T) => f(f(x, y), z) == f(x, f(y, z))))
-    //   // Precondition 2: the JoinList is not empty
-    //   require(!jl.isEmpty)
-    //   sizeForNonEmpty(jl)
-    //   jl match {
-    //     case Single(x) => x
-    //     case Join(l, r) => {
-    //       assert(jl.head == l.head) // head should on left
-    //       assert(headWithConcat(l.toList, r.toList) == ()) // l ++ r = l.head :: (l.tail ++ r)
-    //       assert(jl.tail == l.tail ++ r)
-    //       l match {
-    //         case Single(y) => {
-    //           assert(jl.tail == r)
-    //           assert(l.listCombine(f) == y)
-    //           assert(l ++ r == (l.tail ++ r) :: y)
-    //           f(y, r.listCombine(f))
-    //         }
-    //         case Join(ll, lr) => {
-    //           // listFoldLeftCombine(l.toList, r.toList, f)
-    //           f(l.listCombine(f), r.listCombine(f))
-    //         }
-    //       }
-    //       // 
-    //       // f(l.listCombine(f), r.listCombine(f))
-    //     }
-    //   }
-    // }.ensuring(_ == jl.tail.foldLeft(jl.head)(f))
   }
 
   // 4. should have a self-balancing version of Shunt Tree, but don't know how to do it yet, should we have a balanced topology tree? 
@@ -433,145 +376,32 @@ object JoinListObject {
     }
   }.ensuring(jl.size >= BigInt(1))
 
+  def joinListAggregation[T](jl: JoinList[T], f: ListAggFunction[T]): T = {
+    // Precondition: the JoinList is not empty
+    require(!jl.isEmpty)
+    decreases(jl)
+
+    jl match {
+      case Single(v) => {
+        assert(jl.toList == Cons(v, Nil[T]()))
+        v
+      }
+      case Join(l, r) => {
+        assert(jl.toList == l.toList ++ r.toList)
+        sizeForNonEmpty(l)
+        sizeForNonEmpty(r)
+        listAggregationDistributive(l.toList, r.toList, f) // rhs == f.execute(listAggregation(l, f), listAggregation(r))
+        f.execute(joinListAggregation(l, f), joinListAggregation(r, f))
+      }
+    }
+
+  }.ensuring(_ == listAggregation(jl.toList, f))
+
+  // def joinListHomomorphism[T, R](agg: ListAggFunction[R], jl: JoinList[T], f: T => R): R = {
+  //   val mappedList = jl.map(f)
+  //   assert(mappedList == jl.toList.map(f)) // definition by f
+
+  // }.ensuring(_ == listAggregation(jl.toList.map(f), agg))
 
 
-  // def joinListHeadWithConcat[T](l1: JoinList[T], l2: JoinList[T]): Unit = {
-  //   require(!l1.isEmpty)
-  //   l1 match {
-  //     case Single(x) => {
-  //       assert(l1.tail.isEmpty)
-  //       assert(l1.tail ++ l2 == l2)
-  //       assert(l1.head == x)
-  //       assert(l1 == l1.tail :: l1.head)
-  //       assert(l1 ++ l2 == l2 :: x)
-  //       ()
-  //     }
-  //     case Join(l, r) => {
-  //       assert(!r.isEmpty)
-  //       // val headList = Single(x, Nil())
-  //       assert(l1 == l ++ r)
-  //       listHeadWithConcat(l1.toList, l2.toList)
-  //       ()
-  //     }
-  //   }
-  // }.ensuring(l1 ++ l2 == (l1.tail ++ l2) :: l1.head)
-
-  // def prependIsAddSimple[T](jl: JoinList[T], x: T): Boolean = {
-  //   jl match {
-  //     case Empty() => {
-  //       assert((jl :: x) == Single[T](x))
-  //       // assert(Single[T](x) ++ jl == Single[T](x))
-  //       true
-  //     }
-  //     case Single(y) => {
-  //       assert(jl :: x == Join(Single[T](x), jl))
-  //       // assert(Single[T](x) ++ jl == Join(Single[T](x), jl))
-  //       true
-  //     }
-  //     case Join(l, r) => {
-  //       val newl = l :: x
-  //       assert(jl :: x == newl ++ r)
-  //       ListSpecs.appendAssoc(Single[T](x).toList, l.toList, r.toList)
-  //       assert((Single[T](x) ++ l) ++ r ==  Single[T](x) ++ (l ++ r))
-  //       // if l :: x == single(x) ++ l, then by association, holds
-  //       prependIsAddSimple(l, x)
-  //     }
-  //   }
-  //   jl :: x == Single[T](x) ++ jl
-  // }.holds
-
-  // def joinListAppendAssoc[T](l1: JoinList[T], l2: JoinList[T], l3: JoinList[T]): Boolean = {
-  //   decreases(l1, l2, l3)
-  //   if (l1.isEmpty || l2.isEmpty || l3.isEmpty) {
-  //     assert((l1 ++ l2) ++ l3 == l1 ++ (l2 ++ l3))
-  //     true
-  //   } else {
-  //     assert(!l1.isEmpty)
-  //     assert(l1 ++ l2 == Join(l1, l2)) // by definition
-  //     assert(Join(l1, l2).toList == l1.toList ++ l2.toList)
-  //     assert(((l1 ++ l2) ++ l3).toList == (l1.toList ++ l2.toList) ++ l3.toList)
-  //     assert((l1 ++ (l2 ++ l3)).toList == l1.toList ++ (l2.toList ++ l3.toList))
-  //     ListSpecs.appendAssoc(l1.toList, l2.toList, l3.toList)
-  //     assert(((l1 ++ l2) ++ l3).toList == (l1 ++ (l2 ++ l3)).toList)
-  //     val lhs = (l1 ++ l2) ++ l3
-  //     val rhs = l1 ++ (l2 ++ l3)
-  //     assert(lhs.toList == rhs.toList)
-  //     assert(lhs == rhs)
-  //     true
-  //     // l1 match {
-  //     //   case Single(x) => {
-  //     //     assert(l1 ++ l2 == Join(l1, l2)) // by definition
-  //     //     assert(Join(l1, l2).toList == l1.toList ++ l2.toList)
-  //     //     assert(((l1 ++ l2) ++ l3).toList == (l1.toList ++ l2.toList) ++ l3.toList)
-  //     //     assert((l1 ++ (l2 ++ l3)).toList == l1.toList ++ (l2.toList ++ l3.toList))
-  //     //     ListSpecs.appendAssoc(l1.toList, l2.toList, l3.toList)
-  //     //     assert(((l1 ++ l2) ++ l3).toList == (l1 ++ (l2 ++ l3)).toList)
-  //     //     val lhs = (l1 ++ l2) ++ l3
-  //     //     val rhs = l1 ++ (l2 ++ l3)
-  //     //     assert(lhs.toList == rhs.toList)
-  //     //     true
-  //     //     // l2 match {
-  //     //     //   case Single(y) => {
-  //     //     //     l3 match {
-  //     //     //       case Single(z) => {
-  //     //     //         assert(((l1 ++ l2) ++ l3).toList == List[T](x, y, z))
-  //     //     //         assert((l1 ++ (l2 ++ l3)).toList == List[T](x, y, z))
-  //     //     //         true
-  //     //     //       }
-  //     //     //       case Join(p, q) => {
-  //     //     //         assert(l3 == p ++ q)    // LHS = (l1 ++ l2) ++ (p ++ q)
-  //     //     //         (joinListAppendAssoc(l1 ++ l2, p , q)  // == ((l1 ++ l2) ++ p) ++ q
-  //     //     //           && joinListAppendAssoc(l1, l2, p) // == (l1 ++ (l2 ++ p)) ++ q
-  //     //     //           && joinListAppendAssoc(l1, l2 ++ p, q) // == l1 ++ ((l2 ++ p) ++ q)
-  //     //     //           && joinListAppendAssoc(l2, p, q)
-  //     //     //         )
-  //     //     //       }
-  //     //     //     }
-  //     //     //   }
-  //     //     //   case Join(p, q) => {
-  //     //     //     assert(l2 == p ++ q)
-  //     //     //     (joinListAppendAssoc(l1, p, q) // LHS = ((l1 ++ p) + q) + l3
-  //     //     //       && joinListAppendAssoc(l1 ++ p, q, l3) // = (l1 ++ p) + (q + l3)
-  //     //     //       && joinListAppendAssoc(l1, p, q ++ l3) // = l1 ++ (p + (q + l3))
-  //     //     //       && joinListAppendAssoc(p, q, l3) // = l1 ++ (l2 + l3)
-  //     //     //     )  
-  //     //     //   }
-  //     //     // }
-  //     //   }
-  //     //   case Join(l, r) => {
-  //     //     assert(l1 == l ++ r)
-  //     //     (joinListAppendAssoc(l, r, l2)           //  LHS == (l ++ (r ++ l2)) ++ l3
-  //     //       && joinListAppendAssoc(l, r ++ l2, l3) //  == l ++ ((r ++ l2) ++ l3)
-  //     //       && joinListAppendAssoc(r, l2, l3)      //  == l ++ (r ++ (l2 ++ l3))
-  //     //       && joinListAppendAssoc(l, r, l2 ++ l3) //  == (l ++ r) ++ (l2 ++ l3) == l1 ++ (l2 ++ l3)
-  //     //     ) 
-  //     //   }
-  //     // }
-  //   }
-  //   (l1 ++ l2) ++ l3 == l1 ++ (l2 ++ l3)
-  // }.holds
-
-  // def joinListPreJoinSingleIsPrepend(x: T, l2: JoinList[T]): Boolean = {
-  //   val lx = Single[T](x)
-  //   l2 match {
-  //     case Empty() => {
-  //       assert(l1 ++ l2 == l1)
-  //       assert(l2 :: x == l1)
-  //       true
-  //     }
-  //     case Single(y) => {
-  //       assert(l1 ++ l2 == Join(l1, l2))
-  //       assert(l2 :: x == Join(l1, l2))
-  //       true
-  //     }
-  //     case Join(l, r) => {
-  //       // assert(l1 ++ l2 == l1 ++ (l ++ r))
-  //       assert(l1 ++ l2 == Join(l1, l2))
-  //       assert(l2 :: x == (l :: x) ++ r)
-  //       joinListPreJoinSingleIsPrepend(x, l) // then l :: x == l1 ++ l
-  //       // then (l1 ++ l) ++ r == l1 
-  //     }
-  //   }
-  //   Single[T](x) ++ l2 == l2 :: x 
-  // }.holds
 }
