@@ -23,14 +23,14 @@ object TreeObject {
   // extend the following basic list functions, should be the same implementation between simple and balanced version
   extension[A, B](tr: Tree[A, B]) {
 
-    def toPreOrderList: List[Either[A, B]] = {
+    def toInOrderList: List[Either[A, B]] = {
       // Turn a Tree to a stainless List of Either type
       tr match {
         case Empty() => List[Either[A, B]]()
         case Tip(v) => List[Either[A, B]](Left(v))
         case Bin(v, l, r) => {
-          val left = l.toPreOrderList :+ Right(v)
-          val right = r.toPreOrderList
+          val left = l.toInOrderList :+ Right(v)
+          val right = r.toInOrderList
           assert(!right.isEmpty)
           assert(listLastOfConcat(left, right) == ())
           left ++ right
@@ -43,7 +43,7 @@ object TreeObject {
     )
 
     def ==(other: Tree[A, B]): Boolean = {
-      tr.toPreOrderList == other.toPreOrderList
+      tr.toInOrderList == other.toInOrderList
     }
 
     def isEmpty: Boolean = {
@@ -70,222 +70,146 @@ object TreeObject {
         case Tip(_) => BigInt(1)
         case Bin(_, l, r) => BigInt(1) + l.size + r.size
       }
-    }.ensuring(_ == tr.toPreOrderList.size)
+    }.ensuring(res => res == tr.toInOrderList.size && (res == BigInt(0) || res.mod(2) == BigInt(1)))
 
     
     def last: Either[A, B] = {
+      // Return the value of the right most leaf or the tree
       require(!tr.isEmpty)
       tr match {
         case Tip(v) => Left(v)
         case Bin(v, l, r) => {
           assert(!r.isEmpty)
-          assert(listLastOfConcat(l.toPreOrderList :+ Right(v), r.toPreOrderList) == ())
+          assert(listLastOfConcat(l.toInOrderList :+ Right(v), r.toInOrderList) == ())
           r.last
         }
       }
-    }.ensuring(res => res.isLeft && res == tr.toPreOrderList.last)
-    
+    }.ensuring(res => res.isLeft && res == tr.toInOrderList.last)
 
-    
 
-    // def apply(i: BigInt): T = {
-    //   // Find the i-th element from the JoinList
-    //   require(i >= BigInt(0) && i < jl.size) // i should in range
-    //   jl match {
-    //     // should have no case for empty
-    //     case Single(x) => {
-    //       assert(i == BigInt(0))
-    //       x
-    //     }
-    //     case Join(l, r) => {
-    //       // Stainless list has proved the following in ListSpecs.scala
-    //       ListSpecs.appendIndex(l.toList, r.toList, i)
-    //       if (i < l.size) l.apply(i)
-    //       else r.apply(i - l.size)
-    //     }
-    //   }
-    // }.ensuring(_ == jl.toList.apply(i))
+    def merge(other: Tree[A, B], newRoot: B): Tree[A, B] = {
+      // Merge 2 non empty tree into a new tree with a new intermedia node
+      // the new intermedia node is required because the limitation on the size of tree
+      require(!tr.isEmpty && !other.isEmpty)
+      Bin(newRoot, tr, other)
+    }.ensuring(res => (
+        res.size == tr.size + other.size + BigInt(1)
+        && res.toInOrderList == (tr.toInOrderList :+ Right(newRoot)) ++ other.toInOrderList
+      )
+    )
 
-    
-    // def contains(x: T): Boolean = {
-    //   jl match {
-    //     case Empty() => false
-    //     case Single(y) => y == x
-    //     case Join(l, r) => l.contains(x) || r.contains(x) 
-    //   }
-    // }.ensuring(_ == jl.toList.contains(x))
-
-    
-
-    // def head: T = {
-    //   // Return the first element of the JoinList, only work on non-empty list
-    //   require(!jl.isEmpty)
-    //   sizeForNonEmpty(jl)
-    //   jl.apply(BigInt(0))
-    // }.ensuring(_ == jl.toList.head)
-
-    // def tail: JoinList[T] = {
-    //   // Return the tail of JoinList, which is the list without the first element
-    //   require(!jl.isEmpty)
-    //   jl match {
-    //     case Single(_) => Empty[T]() // single element, then tail is empty
-    //     case Join(l, r) => {
-    //       assert(!l.isEmpty)
-    //       l match {
-    //         case Single(_) => {
-    //           assert(l.tail.isEmpty)
-    //           ListSpecs.leftUnitAppend(r.toList)
-    //           r
-    //         }
-    //         case Join(ll, lr) => {
-    //           sizeForNonEmpty(l)
-    //           listTailOfConcat(l.toList, r.toList) // (l ++ r).tail == l.tail + r
-    //           l.tail ++ r
-    //         }
-    //       }
-          
-    //     }
-    //   }
-    // }.ensuring(_.toList == jl.toList.tail)
-
-    // def ::(t: T): JoinList[T] = {
-    //   // Prepend an element to JoinList
-    //   jl match {
-    //     case Empty() => Single(t)
-    //     case Single(x) => Join(Single(t), jl)
-    //     case Join(l, r) => {
-    //       val newl = l :: t
-    //       assert(newl.toList == Cons(t, l.toList))
-    //       ListSpecs.reverseAppend(newl.toList, r.toList)
-    //       newl ++ r
-    //     }
-    //   }
-    // }.ensuring(_.toList == t :: jl.toList)
-    
-    // def :+(t: T): JoinList[T] = {
-    //   // Append an element to JoinList
-    //   jl match {
-    //     case Empty() => Single(t)
-    //     case Single(x) => Join(jl, Single(t))
-    //     case Join(l, r) => {
-    //       ListSpecs.snocAfterAppend(l.toList, r.toList, t)
-    //       l ++ (r :+ t)
-    //     }
-    //   }
-    // }.ensuring(_.toList == jl.toList :+ t)
+    def apply(i: BigInt): Either[A, B] = {
+      // Find the i-th element from the tree based on inorder
+      require(i >= BigInt(0) && i < tr.size) // i should in range, implies the tree is nonempty
+      tr match {
+        // should have no case for empty
+        case Tip(v) => {
+          assert(i == BigInt(0))
+          Left(v)
+        }
+        case Bin(v, l, r) => {
+          ListSpecs.appendIndex(l.toInOrderList :+ Right(v), r.toInOrderList, i)
+          assert((l.toInOrderList :+ Right(v)).size == l.size + 1)
+          if (i < l.size + 1) {
+            ListSpecs.snocIndex(l.toInOrderList, Right(v), i)
+            if (i < l.size) l.apply(i)
+            else Right(v)
+          }
+          else r.apply(i - l.size - BigInt(1))
+        }
+      }
+    }.ensuring(_ == tr.toInOrderList.apply(i))
 
   }
 
-  // // 2. extend common list aggregation operations
-  // // - sum
-  // // - map
-  // // - zip
-  // // - ......
-  // // But maybe, can we prove the thing in a general way? i.e. + only works if it operates on addable data type
-  // extension[T, R](jl: JoinList[T]) {
-  //   def foldLeft(z: R)(f: (R, T) => R): R = {
-  //     jl match {
-  //       case Empty() => z
-  //       case Single(x) => f(z, x)
-  //       case Join(l, r) => {
-  //         listFoldLeftCombine(l.toList, r.toList, f, z)
-  //         r.foldLeft(l.foldLeft(z)(f))(f)
-  //       }
-  //     }
-  //   }.ensuring(_ == jl.toList.foldLeft(z)(f))
+  extension[A, B](l: List[Either[A, B]]) {
+    def caseMap[C, D](lf: A => C, rf: B => D): List[Either[C, D]] = {
+      l match {
+        case Nil() => Nil()
+        case Cons(x, xs) => {
+          x match {
+            case Left(v) => Cons(Left(lf(v)), xs.caseMap(lf, rf))
+            case Right(v) => Cons(Right(rf(v)), xs.caseMap(lf, rf))
+          }
+        }
+      }
+    }.ensuring(_.size == l.size)
+  }
 
-  //   def foldRight(z: R)(f: (T, R) => R): R = {
-  //     jl match {
-  //       case Empty() => z
-  //       case Single(x) => f(x, z)
-  //       case Join(l, r) => {
-  //         listFoldRightCombine(l.toList, r.toList, f, z)
-  //         l.foldRight(r.foldRight(z)(f))(f)
-  //       }
-  //     }
-  //   }.ensuring(_ == jl.toList.foldRight(z)(f))
+  def caseMapDistributive[A, B, C, D](l1: List[Either[A, B]], l2: List[Either[A, B]], lf: A => C, rf: B => D): Boolean = {
+    if (l1.isEmpty || l2.isEmpty) then true
+    else {
+      l1 match {
+        case Cons(x, xs) => {
+          assert(l1 ++ l2 == Cons(x, xs ++ l2))
+          // prependEqualListContact(xs ++ l2, x)
+          x match {
+            case Left(v) => {
+              assert((l1 ++ l2).caseMap(lf, rf) == Left(lf(v)) :: (xs ++ l2).caseMap(lf, rf)) // by definition
+              assert(l1.caseMap(lf, rf) == Left(lf(v)) :: xs.caseMap(lf, rf))
+              assert(l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf) == Left(lf(v)) :: (xs.caseMap(lf, rf) ++ l2.caseMap(lf, rf)))
+              caseMapDistributive(xs, l2, lf, rf)
+            }
+            case Right(v) => {
+              assert((l1 ++ l2).caseMap(lf, rf) == Right(rf(v)) :: (xs ++ l2).caseMap(lf, rf)) // by definition
+              assert(l1.caseMap(lf, rf) == Right(rf(v)) :: xs.caseMap(lf, rf))
+              assert(l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf) == Right(rf(v)) :: (xs.caseMap(lf, rf) ++ l2.caseMap(lf, rf)))
+              caseMapDistributive(xs, l2, lf, rf)
+            }
+          }
+        }
+      }
+    } 
+    (l1 ++ l2).caseMap(lf, rf) == l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf)
+  }.holds
 
-  //   def map(f: T => R): JoinList[R] = {
-  //     jl match {
-  //       case Empty() => Empty[R]()
-  //       case Single(x) => Single(f(x))
-  //       case Join(l, r) => {
-  //         distributiveOfMap(l.toList, r.toList, f)
-  //         l.map(f) ++ r.map(f)
-  //       }
-  //     }
-  //   }.ensuring(_.toList == jl.toList.map(f))
+  extension[A, B](tr: Tree[A, B]) {
+    def map[C, D](lf: A => C, rf: B => D): Tree[C, D] = {
+      tr match {
+        case Empty() => Empty[C, D]()
+        case Tip(v) => Tip(lf(v))
+        case Bin(v, l, r) => {
+          val newl = l.map(lf, rf) // newl.toInOrderList == l.toInOrderList.caseMap(lf, rf)
+          val newr = r.map(lf, rf) // newr.toInOrderList == r.toInOrderList.caseMap(lf, rf)
+          val newv = rf(v)
+          // val res = 
+          // LHS = (newl.toInOrderList :+ Right(newv)) ++ newr.toInOrderList
+          
+          
+          
+          
+          assert(tr.toInOrderList == (l.toInOrderList :+ Right(v)) ++ r.toInOrderList)
+          caseMapDistributive(l.toInOrderList :+ Right(v), r.toInOrderList, lf, rf)
+          // RHS = (l.toInOrderList :+ Right(v) ++ r.toInOrderList).caseMap(lf, rf)
+          // = (l.toInOrderList :+ Right(v)).caseMap(lf, rf) ++ r.toInOrderList.caseMap(lf, rf)
+          assert(tr.toInOrderList.caseMap(lf, rf) == (l.toInOrderList :+ Right(v)).caseMap(lf, rf) ++ r.toInOrderList.caseMap(lf, rf))
 
-  //   // // This aggregation assumes following list homomorphism scheme, only works on non-empty case
-  //   // def aggregation(combine: (R, R) => R, convert: T => R): R = {
-  //   //   // Precondition 1: the combine is associative
-  //   //   require(forall((x: R, y: R, z: R) => combine(combine(x, y), z) == combine(x, combine(y, z))))
-  //   //   // Precondition 2: the JoinList is not empty
-  //   //   require(!jl.isEmpty)
+          
+          ListSpecs.snocIsAppend(l.toInOrderList, Right(v))
+          caseMapDistributive(l.toInOrderList, List[Either[A, B]](Right(v)), lf, rf)
+          // RHS = (l.toInOrderList.caseMap(lf, rf) ++ [Right(v)].caseMap(lf, rf)) ++ r.toInOrderList.caseMap(lf, rf)
+          assert(tr.toInOrderList.caseMap(lf, rf) == (l.toInOrderList.caseMap(lf, rf) ++ List[Either[A, B]](Right(v)).caseMap(lf, rf)) ++ r.toInOrderList.caseMap(lf, rf))
+          
+          assert(newl.toInOrderList == l.toInOrderList.caseMap(lf, rf))
+          assert(newr.toInOrderList == r.toInOrderList.caseMap(lf, rf))
+          assert(List[Either[C, D]](Right(newv)) == List[Either[A, B]](Right(v)).caseMap(lf, rf))
+          // RHS = (newl.toInOrderList ++ Right(newv)) ++ newr.toInOrderList
+          assert(tr.toInOrderList.caseMap(lf, rf) == (newl.toInOrderList ++ List[Either[C, D]](Right(newv))) ++ newr.toInOrderList)
 
-  //   //   jl match {
-  //   //     case Single(x) => convert(x)
-  //   //     case Join(l, r) => {
-  //   //       // listFoldLeftCombine(l.toList.map(convert), r.toList.map(convert), combine, basecase)
-  //   //       assert(!l.isEmpty && !r.isEmpty)
-  //   //       assert(l.head == jl.head) // Head of prefix
-  //   //       distributiveOfMap(l.toList, r.toList, convert) // (l ++ r).map(convert) == l.map ++ r.map
-  //   //       // val resultl = l.aggregation(combine, convert)
-  //   //       // val resultr = r.aggregation(combine, convert)
-  //   //       // r match {
-  //   //       //   case Single(y) => 
-  //   //       // }
-  //   //       combine(l.aggregation(combine, convert), r.aggregation(combine, convert))
-  //   //     }
-  //   //   }
-  //   // }.ensuring(
-  //   //   _ == jl.tail.map(convert).toList.foldLeft(convert(jl.head))(combine)
-  //   // )
-  // }
+          ListSpecs.snocIsAppend(newl.toInOrderList, Right(newv))
+          // RHS = Bin(newv, newl, newr) == LHS
+          assert(tr.toInOrderList.caseMap(lf, rf) == (newl.toInOrderList :+ Right(newv)) ++ newr.toInOrderList)
 
-  // // 3. some more advanced list operations, different between simple and balanced version
-  // // - ++ && ++:
-  // // foldl, foldr?
-  // // ...... maybe more in.
-  // extension[T](jl: JoinList[T]) {
-  //   def ++(other: JoinList[T]): JoinList[T] = {
-  //     // Implementation of ++
-  //     if (jl.isEmpty) then other
-  //     else if (other.isEmpty) then jl
-  //     else Join(jl, other)
-  //   }.ensuring(_.toList == jl.toList ++ other.toList)
-
-  //   // def listCombine(f: (T, T) => T): T = {
-  //   //   // Appling a combine function to list
-
-  //   //   // Precondition 1: the combine is associative
-  //   //   require(forall((x: T, y: T, z: T) => f(f(x, y), z) == f(x, f(y, z))))
-  //   //   // Precondition 2: the JoinList is not empty
-  //   //   require(!jl.isEmpty)
-  //   //   sizeForNonEmpty(jl)
-  //   //   jl match {
-  //   //     case Single(x) => x
-  //   //     case Join(l, r) => {
-  //   //       assert(jl.head == l.head) // head should on left
-  //   //       assert(headWithConcat(l.toList, r.toList) == ()) // l ++ r = l.head :: (l.tail ++ r)
-  //   //       assert(jl.tail == l.tail ++ r)
-  //   //       l match {
-  //   //         case Single(y) => {
-  //   //           assert(jl.tail == r)
-  //   //           assert(l.listCombine(f) == y)
-  //   //           assert(l ++ r == (l.tail ++ r) :: y)
-  //   //           f(y, r.listCombine(f))
-  //   //         }
-  //   //         case Join(ll, lr) => {
-  //   //           // listFoldLeftCombine(l.toList, r.toList, f)
-  //   //           f(l.listCombine(f), r.listCombine(f))
-  //   //         }
-  //   //       }
-  //   //       // 
-  //   //       // f(l.listCombine(f), r.listCombine(f))
-  //   //     }
-  //   //   }
-  //   // }.ensuring(_ == jl.tail.foldLeft(jl.head)(f))
-  // }
+          // Return result
+          Bin(newv, newl, newr)
+        }
+      }
+    }.ensuring(res => (
+        res.size == tr.size
+        && 
+        res.toInOrderList == tr.toInOrderList.caseMap(lf, rf)
+      )
+    )
+  }
 
 }
