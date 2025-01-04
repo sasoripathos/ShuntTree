@@ -10,9 +10,9 @@ object TreeObject {
   sealed abstract class Tree[A, B]
   // Add one case for empty tree
   case class Empty[A, B]() extends Tree[A, B]
-  // Single element
+  // Single leaf
   case class Tip[A, B](value: A) extends Tree[A, B]
-  // Join element
+  // Internal node
   case class Bin[A, B](value: B, left: Tree[A, B], right: Tree[A, B]) extends Tree[A, B] {
     require(
       left != Empty[A, B]() && right != Empty[A, B]() // as define in the paper, left and right cannot be empty
@@ -20,7 +20,7 @@ object TreeObject {
   }
 
 
-  // extend the following basic list functions, should be the same implementation between simple and balanced version
+  // Extend the following basic tree functions
   extension[A, B](tr: Tree[A, B]) {
 
     def toInOrderList: List[Either[A, B]] = {
@@ -172,11 +172,6 @@ object TreeObject {
           val newl = l.map(lf, rf) // newl.toInOrderList == l.toInOrderList.caseMap(lf, rf)
           val newr = r.map(lf, rf) // newr.toInOrderList == r.toInOrderList.caseMap(lf, rf)
           val newv = rf(v)
-          // val res = 
-          // LHS = (newl.toInOrderList :+ Right(newv)) ++ newr.toInOrderList
-          
-          
-          
           
           assert(tr.toInOrderList == (l.toInOrderList :+ Right(v)) ++ r.toInOrderList)
           caseMapDistributive(l.toInOrderList :+ Right(v), r.toInOrderList, lf, rf)
