@@ -2,6 +2,7 @@ import stainless.lang.*
 import stainless.collection.*
 import stainless.annotation.*
 
+
 object ShuntTreeObject {
 
   // ST a b
@@ -54,15 +55,15 @@ object ShuntTreeObject {
     }
     
 
-  def height: BigInt = {
-    c match {
-      case H(_) => 0
-      case L(left, middle, right) =>
-        1 + max(left.height, max(middle.height, right.height))
-      case R(left, middle, right) =>
-        1 + max(left.height, max(middle.height, right.height))
+    def height: BigInt = {
+      c match {
+        case H(_) => 0
+        case L(left, middle, right) =>
+          1 + max(left.height, max(middle.height, right.height))
+        case R(left, middle, right) =>
+          1 + max(left.height, max(middle.height, right.height))
+      }
     }
-  }
 
 
 
@@ -93,7 +94,51 @@ object ShuntTreeObject {
           1 + max(left.height, max(middle.height, right.height))
       }
     }
+
+    //TODO (important): def sum 
+
     
+  }
+
+  // Define Tip and Bin-> TO REVISIT AND CHECK (+formally verify)
+  sealed abstract class Tree[A, B]
+  case class Tip[A, B](value: A) extends Tree[A, B]
+  case class Bin[A, B](left: Tree[A, B], value: B, right: Tree[A, B]) extends Tree[A, B]
+
+  // Define Shunt-> do we even need it?
+  case class Shunt[A, B](left: (B, B, A) => B,
+                         right: (A, B, B) => B,
+                         none: (B, B, B) => B)
+
+  // Implement scs-> check
+  def scs[A, B](f: A => B, g: (B, B) => B, shunt: Shunt[A, B])(tree: Tree[A, B]): B = tree match {
+    case Tip(a) => f(a)
+    case Bin(left, b, right) =>
+      val lRes = scs(f, g, shunt)(left)
+      val rRes = scs(f, g, shunt)(right)
+      shunt.none(lRes, b, rRes)
+  }
+
+  // Implement hole and connect-> check
+  type Context[A, B] = (Tree[A, B], Tree[A, B]) => Tree[A, B]
+
+
+  //to revisit
+  def hole[A, B](b: B): Context[A, B] = (left, right) => Bin(left, b, right)
+
+  /* 
+  def connect[A, B]: Shunt[Tree[A, B], Context[A, B]] = Shunt(
+    (l, b, a) => hole(b)(Tip(a), l),
+    (a, b, r) => hole(b)(r, Tip(a)),
+    (l, b, r) => hole(b)(l, r)
+  )
+*/
+  //to revisit
+  def zipTree[A, B, C, D](t1: Tree[A, B], t2: Tree[C, D]): Tree[(A, C), (B, D)] = (t1, t2) match {
+    case (Tip(a), Tip(c)) => Tip((a, c))
+    case (Bin(l1, b1, r1), Bin(l2, b2, r2)) =>
+      Bin(zipTree(l1, l2), (b1, b2), zipTree(r1, r2))
+    //-> missing a "case _ =>" ?"
   }
 
 
