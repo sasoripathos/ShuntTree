@@ -284,40 +284,49 @@ object Helper {
     (l.tail.isEmpty && res == l.head) || (res == f.execute(l.head, listAggregation(l.tail, f)))
   )
 
-  // def listAggregationDistributive[T](l1: List[T], l2: List[T], f: AggFunction[T]): Boolean = {
-  //   // Precondition 1: f is associative (as specified in @law)
-  //   // Precondition 2: 2 JoinList is not empty
-  //   require(!l1.isEmpty && !l2.isEmpty)
+  def listAggregationDistributive[T](l1: List[T], l2: List[T], f: AggFunction[T]): Boolean = {
+    // Precondition 1: f is associative (as specified in @law)
+    // Precondition 2: 2 JoinList is not empty
+    require(!l1.isEmpty && !l2.isEmpty)
 
-  //   decreases(l1)
+    decreases(l1)
 
-  //   l1 match {
-  //     case Cons(x, Nil()) => {
-  //       assert(!l2.isEmpty)
-  //       assert(l1 ++ l2 == Cons(x, l2)) // by definition
-  //       assert(listAggregation(l1 ++ l2, f) == f.execute(x, listAggregation(l2, f))) // LHS by definition
-  //       assert(listAggregation(l1, f) == x)
-  //       assert(listAggregation(l1 ++ l2, f) == f.execute(listAggregation(l1, f), listAggregation(l2, f)))
-  //       true
-  //     }
-  //     case Cons(x, xs) => {
-  //       assert(l1 ++ l2 == Cons(x, xs ++ l2))
-  //       // LHS = f.execute(x, listAggregation(x2 ++ l2, f))
-  //       val lhs = listAggregation(l1 ++ l2, f)
-  //       assert(lhs == f.execute(x, listAggregation(xs ++ l2, f)))
-  //       // RHS == f.execute(x, f.execute(listAggregation(xs, f), listAggregation(l2, f))))
-  //       val rhs1 = listAggregation(l1, f)
-  //       val rhs2 = listAggregation(l2, f)
-  //       val rhs = f.execute(rhs1, rhs2)
-  //       val tailAgg = listAggregation(xs, f)
-  //       assert(rhs1 == f.execute(x, tailAgg))
-  //       assert(rhs == f.execute(f.execute(x, tailAgg), rhs2))
-  //       assert(f.isAssociative(x, tailAgg, rhs2))
-  //       assert(rhs == f.execute(x, f.execute(tailAgg, rhs2)))
-  //       assert(listAggregationDistributive(xs, l2, f) ==> (lhs == rhs))
-  //       listAggregationDistributive(xs, l2, f) 
-  //     }
-  //   }
-  //   listAggregation(l1 ++ l2, f) == f.execute(listAggregation(l1, f), listAggregation(l2, f))
-  // }.holds
+    l1 match {
+      case Cons(x, Nil()) => {
+        assert(!l2.isEmpty)
+        assert(l1 ++ l2 == Cons(x, l2)) // by definition
+        assert(listAggregation(l1 ++ l2, f) == f.execute(x, listAggregation(l2, f))) // LHS by definition
+        assert(listAggregation(l1, f) == x)
+        assert(listAggregation(l1 ++ l2, f) == f.execute(listAggregation(l1, f), listAggregation(l2, f)))
+        true
+      }
+      case Cons(x, xs) => {
+        // RHS == f.execute(x, f.execute(listAggregation(xs, f), listAggregation(l2, f))))
+        val rhs1 = listAggregation(l1, f)
+        val rhs2 = listAggregation(l2, f)
+        val rhs = f.execute(rhs1, rhs2)
+        val tailAgg = listAggregation(xs, f)
+
+        // RHS == f.execute(f.execute(x, listAggregation(xs, f)), listAggregation(l2, f))
+        assert(rhs1 == f.execute(x, tailAgg))
+        assert(rhs == f.execute(f.execute(x, tailAgg), rhs2))
+
+        // RHS == f.execute(x, f.execute(listAggregation(xs, f), listAggregation(l2, f)))
+        f.isAssociative(x, tailAgg, rhs2)
+        assert(rhs == f.execute(x, f.execute(tailAgg, rhs2)))
+
+        // RHS == f.execute(x, listAggregation(xs ++ l2, f))
+        val ans = listAggregationDistributive(xs, l2, f) // f.execute(listAggregation(xs, f), listAggregation(l2, f)) == listAggregation(xs ++ l2, f)
+        assert(rhs == f.execute(x, listAggregation(xs ++ l2, f)))
+        // RHS == LHS
+        assert(l1 ++ l2 == Cons(x, xs ++ l2))
+        assert(listAggregation(l1 ++ l2, f) == f.execute(x, listAggregation(xs ++ l2, f)))
+        assert(listAggregation(l1 ++ l2, f) == rhs)
+
+        // Return result
+        ans
+      }
+    }
+    listAggregation(l1 ++ l2, f) == f.execute(listAggregation(l1, f), listAggregation(l2, f))
+  }.holds
 }
