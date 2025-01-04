@@ -3,3 +3,12 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+
+# Ignora directory di configurazione locali
+.bsp/
+.metals/
+.scala-build/
+.vscode/
+
+# Ignora la cache di Stainless
+.stainless-cache/
