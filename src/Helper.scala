@@ -251,7 +251,7 @@ object Helper {
   //   (l1 ++ (y :: ys)).foldLeft(zero)(f) == f(l1.foldLeft(zero)(f), ys.foldLeft(y)(f))
   // }
 
-  abstract class AggFunction[T]:
+  abstract class ListAggFunction[T]:
     def execute(x: T, y: T): T
 
     // This should insure all the implementation to have this property
@@ -262,14 +262,14 @@ object Helper {
     // def isAssociative(x: T, y: T, z: T): Boolean
     
   // An example for Integer addition
-  case class SumBigInt() extends AggFunction[BigInt] {
+  case class SumBigInt() extends ListAggFunction[BigInt] {
     override def execute(x: BigInt, y: BigInt): BigInt = {
       x + y
     }
   }
 
-  def listAggregation[T](l: List[T], f: AggFunction[T]): T = {
-    // Precondition: the JoinList is not empty
+  def listAggregation[T](l: List[T], f: ListAggFunction[T]): T = {
+    // Precondition: the list is not empty
     require(!l.isEmpty)
     decreases(l)
 
@@ -284,9 +284,9 @@ object Helper {
     (l.tail.isEmpty && res == l.head) || (res == f.execute(l.head, listAggregation(l.tail, f)))
   )
 
-  def listAggregationDistributive[T](l1: List[T], l2: List[T], f: AggFunction[T]): Boolean = {
+  def listAggregationDistributive[T](l1: List[T], l2: List[T], f: ListAggFunction[T]): Boolean = {
     // Precondition 1: f is associative (as specified in @law)
-    // Precondition 2: 2 JoinList is not empty
+    // Precondition 2: 2 list is not empty
     require(!l1.isEmpty && !l2.isEmpty)
 
     decreases(l1)
