@@ -39,7 +39,7 @@ object BalancedJoinListObject {
           // constructor ensured the hight differences
           assert(BigInt(-1) <= l.height - r.height && l.height - r.height <= BigInt(1))
           // tree is balanced as long as both child are balanced
-          l.isBalanced && r.isBalanced
+          l.isBalanced && r.isBalanced && BigInt(-1) <= l.height - r.height && l.height - r.height <= BigInt(1)
         }
         case _ => true // true for empty and single node
       }

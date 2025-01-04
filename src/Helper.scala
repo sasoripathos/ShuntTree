@@ -68,6 +68,21 @@ object Helper {
     }
   }.ensuring((l1 ++ l2).foldRight(basecase)(f) == l1.foldRight(l2.foldRight(basecase)(f))(f))
 
+  def listLastOfConcat[T](l1: List[T], l2: List[T]): Unit = {
+    require(!l2.isEmpty)
+    l1 match {
+      case Nil() => {
+        assert(l1 ++ l2 == l2)
+        ()
+      }
+      case Cons(x, xs) => {
+        assert(l1 ++ l2 == Cons(x, xs ++ l2)) // by definition
+        assert((l1 ++ l2).last == (xs ++ l2).last)
+        listLastOfConcat(xs, l2)
+      }
+    }
+  }.ensuring((l1 ++ l2).last == l2.last)
+
   // def listFoldLeftWhenAssociative[T](x: T, xs: List[T], f: (T, T) => T, zero: T):Boolean = {
   //   // Precondition: the combine is associative
   //   require(forall((x: T, y: T, z: T) => f(f(x, y), z) == f(x, f(y, z))))
