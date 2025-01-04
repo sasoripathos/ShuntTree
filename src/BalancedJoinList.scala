@@ -325,7 +325,7 @@ object BalancedJoinListObject {
           l.map(f) ++ r.map(f)
         }
       }
-    }.ensuring(_.toList == jl.toList.map(f))
+    }.ensuring(res => res.toList == jl.toList.map(f) && res.size == jl.size)
 
     // def sum(combine: (R, R) => R, convert: T => R, basecase: R): R = {
     //   jl match {
@@ -487,4 +487,36 @@ object BalancedJoinListObject {
       }
     }
   }.ensuring(jl.size >= BigInt(1))
+
+  def joinListAggregation[T](jl: JoinList[T], f: ListAggFunction[T]): T = {
+    // Precondition: the JoinList is not empty
+    require(!jl.isEmpty)
+    decreases(jl)
+
+    jl match {
+      case Single(v) => {
+        assert(jl.toList == Cons(v, Nil[T]()))
+        v
+      }
+      case Join(l, r) => {
+        assert(jl.toList == l.toList ++ r.toList)
+        sizeForNonEmpty(l)
+        sizeForNonEmpty(r)
+        listAggregationDistributive(l.toList, r.toList, f) // rhs == f.execute(listAggregation(l, f), listAggregation(r))
+        f.execute(joinListAggregation(l, f), joinListAggregation(r, f))
+      }
+    }
+
+  }.ensuring(_ == listAggregation(jl.toList, f))
+
+  def joinListHomomorphism[T, R](agg: ListAggFunction[R], jl: JoinList[T], f: T => R): R = {
+    require(!jl.isEmpty)
+
+    val mappedList = jl.map(f)
+    sizeForNonEmpty(jl)
+    assert(mappedList.toList == jl.toList.map(f)) // definition by map
+    sizeForNonEmpty(mappedList)
+    joinListAggregation(mappedList, agg)
+
+  }.ensuring(_ == listAggregation(jl.toList.map(f), agg))
 }

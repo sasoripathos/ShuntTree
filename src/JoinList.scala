@@ -256,7 +256,7 @@ object JoinListObject {
           l.map(f) ++ r.map(f)
         }
       }
-    }.ensuring(_.toList == jl.toList.map(f))
+    }.ensuring(res => res.toList == jl.toList.map(f) && res.size == jl.size)
 
 /*
     def zip(that: JoinList[R]): JoinList[(T, R)] = {
@@ -397,11 +397,16 @@ object JoinListObject {
 
   }.ensuring(_ == listAggregation(jl.toList, f))
 
-  // def joinListHomomorphism[T, R](agg: ListAggFunction[R], jl: JoinList[T], f: T => R): R = {
-  //   val mappedList = jl.map(f)
-  //   assert(mappedList == jl.toList.map(f)) // definition by f
+  def joinListHomomorphism[T, R](agg: ListAggFunction[R], jl: JoinList[T], f: T => R): R = {
+    require(!jl.isEmpty)
 
-  // }.ensuring(_ == listAggregation(jl.toList.map(f), agg))
+    val mappedList = jl.map(f)
+    sizeForNonEmpty(jl)
+    assert(mappedList.toList == jl.toList.map(f)) // definition by map
+    sizeForNonEmpty(mappedList)
+    joinListAggregation(mappedList, agg)
+
+  }.ensuring(_ == listAggregation(jl.toList.map(f), agg))
 
 
 }
