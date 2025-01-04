@@ -120,50 +120,6 @@ object TreeObject {
       }
     }.ensuring(_ == tr.toInOrderList.apply(i))
 
-  }
-
-  extension[A, B](l: List[Either[A, B]]) {
-    def caseMap[C, D](lf: A => C, rf: B => D): List[Either[C, D]] = {
-      l match {
-        case Nil() => Nil()
-        case Cons(x, xs) => {
-          x match {
-            case Left(v) => Cons(Left(lf(v)), xs.caseMap(lf, rf))
-            case Right(v) => Cons(Right(rf(v)), xs.caseMap(lf, rf))
-          }
-        }
-      }
-    }.ensuring(_.size == l.size)
-  }
-
-  def caseMapDistributive[A, B, C, D](l1: List[Either[A, B]], l2: List[Either[A, B]], lf: A => C, rf: B => D): Boolean = {
-    if (l1.isEmpty || l2.isEmpty) then true
-    else {
-      l1 match {
-        case Cons(x, xs) => {
-          assert(l1 ++ l2 == Cons(x, xs ++ l2))
-          // prependEqualListContact(xs ++ l2, x)
-          x match {
-            case Left(v) => {
-              assert((l1 ++ l2).caseMap(lf, rf) == Left(lf(v)) :: (xs ++ l2).caseMap(lf, rf)) // by definition
-              assert(l1.caseMap(lf, rf) == Left(lf(v)) :: xs.caseMap(lf, rf))
-              assert(l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf) == Left(lf(v)) :: (xs.caseMap(lf, rf) ++ l2.caseMap(lf, rf)))
-              caseMapDistributive(xs, l2, lf, rf)
-            }
-            case Right(v) => {
-              assert((l1 ++ l2).caseMap(lf, rf) == Right(rf(v)) :: (xs ++ l2).caseMap(lf, rf)) // by definition
-              assert(l1.caseMap(lf, rf) == Right(rf(v)) :: xs.caseMap(lf, rf))
-              assert(l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf) == Right(rf(v)) :: (xs.caseMap(lf, rf) ++ l2.caseMap(lf, rf)))
-              caseMapDistributive(xs, l2, lf, rf)
-            }
-          }
-        }
-      }
-    } 
-    (l1 ++ l2).caseMap(lf, rf) == l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf)
-  }.holds
-
-  extension[A, B](tr: Tree[A, B]) {
     def map[C, D](lf: A => C, rf: B => D): Tree[C, D] = {
       tr match {
         case Empty() => Empty[C, D]()
@@ -206,5 +162,48 @@ object TreeObject {
       )
     )
   }
+
+  // A helper function that peform map on Left and Right accordingly
+  extension[A, B](l: List[Either[A, B]]) {
+    def caseMap[C, D](lf: A => C, rf: B => D): List[Either[C, D]] = {
+      l match {
+        case Nil() => Nil()
+        case Cons(x, xs) => {
+          x match {
+            case Left(v) => Cons(Left(lf(v)), xs.caseMap(lf, rf))
+            case Right(v) => Cons(Right(rf(v)), xs.caseMap(lf, rf))
+          }
+        }
+      }
+    }.ensuring(_.size == l.size)
+  }
+
+  // Lemma -- case map is distributive
+  def caseMapDistributive[A, B, C, D](l1: List[Either[A, B]], l2: List[Either[A, B]], lf: A => C, rf: B => D): Boolean = {
+    if (l1.isEmpty || l2.isEmpty) then true
+    else {
+      l1 match {
+        case Cons(x, xs) => {
+          assert(l1 ++ l2 == Cons(x, xs ++ l2))
+          // prependEqualListContact(xs ++ l2, x)
+          x match {
+            case Left(v) => {
+              assert((l1 ++ l2).caseMap(lf, rf) == Left(lf(v)) :: (xs ++ l2).caseMap(lf, rf)) // by definition
+              assert(l1.caseMap(lf, rf) == Left(lf(v)) :: xs.caseMap(lf, rf))
+              assert(l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf) == Left(lf(v)) :: (xs.caseMap(lf, rf) ++ l2.caseMap(lf, rf)))
+              caseMapDistributive(xs, l2, lf, rf)
+            }
+            case Right(v) => {
+              assert((l1 ++ l2).caseMap(lf, rf) == Right(rf(v)) :: (xs ++ l2).caseMap(lf, rf)) // by definition
+              assert(l1.caseMap(lf, rf) == Right(rf(v)) :: xs.caseMap(lf, rf))
+              assert(l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf) == Right(rf(v)) :: (xs.caseMap(lf, rf) ++ l2.caseMap(lf, rf)))
+              caseMapDistributive(xs, l2, lf, rf)
+            }
+          }
+        }
+      }
+    } 
+    (l1 ++ l2).caseMap(lf, rf) == l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf)
+  }.holds
 
 }
