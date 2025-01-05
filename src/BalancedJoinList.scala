@@ -22,7 +22,7 @@ object BalancedJoinListObject {
     )
   }
 
-  // construct the special operations for balanced JoinList (as it is a tree)
+  // ----------  special operations for balanced JoinList (as it is a tree) ----------
   extension[T](jl: JoinList[T]) {
     def height: BigInt = {
       // Calculate the hight of a tree, empty has hight 0
@@ -48,7 +48,7 @@ object BalancedJoinListObject {
 
 
 
-  // extend the following basic list functions
+  // ---------- simple list operations ----------
   extension[T](jl: JoinList[T]) {
     def toList: List[T] = {
       // Turn a JoinList to a stainless List
@@ -171,26 +171,26 @@ object BalancedJoinListObject {
     }.ensuring(_.toList == jl.toList :+ t)
 
     def take(i: BigInt): JoinList[T] = {
-    require(i >= 0)
+      require(i >= 0)
 
-    jl match {
-      case Empty() => Empty[T]()
-      case Single(x) =>
-        if (i <= 0) Empty[T]()
-        else Single(x)
-      case Join(l, r) =>
-        if (i <= l.size) l.take(i)
-        else l.++(r.take(i - l.size)) // Combine with balancing using ++
+      jl match {
+        case Empty() => Empty[T]()
+        case Single(x) =>
+          if (i <= 0) Empty[T]()
+          else Single(x)
+        case Join(l, r) =>
+          if (i <= l.size) l.take(i)
+          else l.++(r.take(i - l.size)) // Combine with balancing using ++
+      }
+    }.ensuring { res =>
+      res.toList.content.subsetOf(jl.toList.content) && // Ensure the content is a subset of the original
+      (res.size == (
+        if (i <= 0) BigInt(0)
+        else if (i >= jl.size) jl.size
+        else i
+      )) &&
+      res.isBalanced // Ensure the result is balanced
     }
-  }.ensuring { res =>
-    res.toList.content.subsetOf(jl.toList.content) && // Ensure the content is a subset of the original
-    (res.size == (
-      if (i <= 0) BigInt(0)
-      else if (i >= jl.size) jl.size
-      else i
-    )) &&
-    res.isBalanced // Ensure the result is balanced
-  }
 
     def drop(i: BigInt): JoinList[T] = {
       require(i >= 0)
@@ -223,76 +223,9 @@ object BalancedJoinListObject {
       res.size == (to - from) && // Ensure the size matches the slice range
       res.isBalanced // Ensure the result is balanced
     }
-/*
-    //Take the first `i` elements of a JoinList
-    def take(i: BigInt): JoinList[T] = {
-      require(i >= 0)
-
-      jl match {
-        case Empty() => Empty[T]()
-        case Single(x) =>
-          if (i <= 0) Empty[T]()
-          else Single(x)
-        case Join(l, r) =>
-          if (i <= l.size) l.take(i)
-          else Join(l, r.take(i - l.size))
-      }
-      /*
-    * 1) The content of the result is a subset of the original JoinList's content
-     * 2) The size of the result matches the specified conditions:
-     * 3) If `i <= 0`, the result size is 0
-     * 4) If `i >= jl.size`, the result size equals the size of the original JoinList
-     * 5) Otherwise, the result size equals `i`
-     * */
-    }.ensuring { res =>
-      res.toList.content.subsetOf(jl.toList.content) && res.isBalanced &&
-      (res.size == (
-        if (i <= 0) BigInt(0)
-        else if (i >= jl.size) jl.size
-        else i
-      ))
-    }
-
-     //Drop the first `i` elements of a JoinList
-    def drop(i: BigInt): JoinList[T] = {
-      require(i >= 0)
-
-      jl match {
-        case Empty() => Empty[T]()
-        case Single(x) =>
-          if (i <= 0) Single(x)
-          else Empty[T]()
-        case Join(l, r) =>
-          if (i < l.size) Join(l.drop(i), r)
-          else r.drop(i - l.size)
-      }
-
-      /* 
-     * 1) The content of the result is a subset of the original JoinList's content
-     * 2) The size of the result matches the specified conditions:
-     * 3) If `i <= 0`, the result size equals the original JoinList size
-     * 4) If `i >= jl.size`, the result size is 0
-     * 5) Otherwise, the result size equals `jl.size - i`
-       */
-    }.ensuring { res =>
-      res.toList.content.subsetOf(jl.toList.content) &&
-      (res.size == (
-        if (i <= 0) jl.size
-        else if (i >= jl.size) BigInt(0)
-        else jl.size - i
-      ))
-    }
-    */
-
-
   }
   
-  // 2. extend common list aggregation operations
-  // - sum
-  // - map
-  // - zip
-  // - ......
-  // But maybe, can we prove the thing in a general way? i.e. + only works if it operates on addable data type
+  // ---------- list operations involving function parameters ----------
   extension[T, R](jl: JoinList[T]) {
     def foldLeft(z: R)(f: (R, T) => R): R = {
       jl match {
@@ -326,25 +259,10 @@ object BalancedJoinListObject {
         }
       }
     }.ensuring(res => res.toList == jl.toList.map(f) && res.size == jl.size)
-
-    // def sum(combine: (R, R) => R, convert: T => R, basecase: R): R = {
-    //   jl match {
-    //     case Empty() => basecase
-    //     case Single(x) => combine(basecase, convert(x))
-    //     case Join(l, r) => {
-    //       // Unsure about this, maybe try foldl first
-    //       r.sum(combine, convert, l.sum(combine, convert, basecase))
-    //     }
-    //   }
-    // }.ensuring(_ == jl.toList.map(convert).foldLeft(basecase)(combine))
   }
 
-  // 3. some more advanced list operations, different between simple and balanced version
-  // - ++ && ++:
-  // foldl, foldr?
-  // ...... maybe more in.
+  // ---------- operations on multiple list ----------
   extension[T](jl: JoinList[T]) {
-
     def ++(other: JoinList[T]): JoinList[T] = {
       // Prove that: we can concat 2 balanced JoinList and form another balanced Join List whose height grows at most 1
       decreases(abs(jl.height - other.height))
@@ -368,14 +286,20 @@ object BalancedJoinListObject {
               } else {
                 // otherwise,
                 assert(other.height == rl.height + 1)
+                assert(rr.height == other.height - 2)
                 rl match {
                   case Join(rll, rlr) => {
                     ListSpecs.appendAssoc(jl.toList, rll.toList, rlr.toList)
                     val newl = jl ++ rll
                     ListSpecs.appendAssoc(newl.toList, rlr.toList, rr.toList)
+                    assert(rlr.height >= other.height - 3)
                     if (newl.height == other.height - 3) {
+                      // since ++ grows height by 0 or 1, rll must was -3 so rlr msut was -2
+                      assert(rlr.height == other.height - 2)
                       Join(Join(newl, rlr), rr)
                     } else {
+                      // othersie, newl could be -2 or -1, rlr must could be -2 or -3
+                      assert(newl.height >= other.height - 2 && newl.height <= other.height - 1)
                       Join(newl, Join(rlr, rr))
                     }
                   }
@@ -417,24 +341,24 @@ object BalancedJoinListObject {
     ))
 
     def --(other: JoinList[T]): JoinList[T] = {
-    jl match {
-      case Empty() => Empty[T]()
-      case Single(x) =>
-        if (other.contains(x)) Empty[T]()
-        else Single(x)
-      case Join(l, r) =>
-        val newLeft = l -- other
-        val newRight = r -- other
-        if (newLeft.isEmpty && newRight.isEmpty) Empty[T]()
-        else if (newLeft.isEmpty) newRight
-        else if (newRight.isEmpty) newLeft
-        else newLeft.++(newRight)
+      jl match {
+        case Empty() => Empty[T]()
+        case Single(x) =>
+          if (other.contains(x)) Empty[T]()
+          else Single(x)
+        case Join(l, r) =>
+          val newLeft = l -- other
+          val newRight = r -- other
+          if (newLeft.isEmpty && newRight.isEmpty) Empty[T]()
+          else if (newLeft.isEmpty) newRight
+          else if (newRight.isEmpty) newLeft
+          else newLeft.++(newRight)
+      }
+    }.ensuring { res =>
+      res.size <= jl.size && // Ensure the result size is not greater than the original
+      res.content == jl.content -- other.content && // Ensure the result content matches the set difference
+      res.isBalanced // Ensure the result is balanced
     }
-  }.ensuring { res =>
-    res.size <= jl.size && // Ensure the result size is not greater than the original
-    res.content == jl.content -- other.content && // Ensure the result content matches the set difference
-    res.isBalanced // Ensure the result is balanced
-  }
 
     def &(other: JoinList[T]): JoinList[T] = {
       jl match {
@@ -457,20 +381,10 @@ object BalancedJoinListObject {
       res.content.subsetOf(other.content) && // Result content is a subset of the other jl
       res.isBalanced // Ensure the result is balanced
     }
-
-    
-
-    
   }
-
-  // 4. should have a self-balancing version of Shunt Tree, but don't know how to do it yet, should we have a balanced topology tree? 
-
-  // 5. should we support traditional tree operations like insert(+ proper balancing)? Comparing with conq tree, this seems to be an overkill.
-
 
 
   // ---------- Proof for Join List properties ---------- 
-
   // p1: a JoinList with element has at least size 1
   def sizeForNonEmpty[T](jl: JoinList[T]): Unit = {
     require(!jl.isEmpty)
