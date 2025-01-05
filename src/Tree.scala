@@ -56,11 +56,9 @@ object TreeObject {
     
     def last: Either[A, B] = {
       // Return the value of the right most leaf or the tree
-      // require(!tr.isEmpty)
       tr match {
         case Tip(v) => Left(v)
         case Bin(v, l, r) => {
-          // assert(!r.isEmpty)
           assert(listLastOfConcat(l.toInOrderList :+ Right(v), r.toInOrderList) == ())
           r.last
         }
