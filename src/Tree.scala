@@ -9,15 +9,15 @@ object TreeObject {
   // Tree[T] -- Normal version
   sealed abstract class Tree[A, B]
   // Add one case for empty tree
-  case class Empty[A, B]() extends Tree[A, B]
+  // case class Empty[A, B]() extends Tree[A, B]
   // Single leaf
   case class Tip[A, B](value: A) extends Tree[A, B]
   // Internal node
-  case class Bin[A, B](value: B, left: Tree[A, B], right: Tree[A, B]) extends Tree[A, B] {
+  case class Bin[A, B](value: B, left: Tree[A, B], right: Tree[A, B]) extends Tree[A, B] /*{
     require(
       left != Empty[A, B]() && right != Empty[A, B]() // as define in the paper, left and right cannot be empty
     )
-  }
+  }*/
 
 
   // Extend the following basic tree functions
@@ -26,7 +26,7 @@ object TreeObject {
     def toInOrderList: List[Either[A, B]] = {
       // Turn a Tree to a stainless List of Either type
       tr match {
-        case Empty() => List[Either[A, B]]()
+        // case Empty() => List[Either[A, B]]()
         case Tip(v) => List[Either[A, B]](Left(v))
         case Bin(v, l, r) => {
           val left = l.toInOrderList :+ Right(v)
@@ -37,8 +37,9 @@ object TreeObject {
         }
       }
     }.ensuring(res => (
-        res.size == 0
-        || (res.head.isLeft && res.last.isLeft)
+        // res.size == 0
+        // ||
+        (res.head.isLeft && res.last.isLeft)
       )
     )
 
@@ -46,18 +47,18 @@ object TreeObject {
       tr.toInOrderList == other.toInOrderList
     }
 
-    def isEmpty: Boolean = {
-      // Check if a JoinList is empty
-      tr match {
-        case Empty() => true
-        case _ => false
-      }
-    }
+    // def isEmpty: Boolean = {
+    //   // Check if a JoinList is empty
+    //   tr match {
+    //     case Empty() => true
+    //     case _ => false
+    //   }
+    // }
 
     def height: BigInt = {
       // Calculate the hight of a tree, empty has hight 0
       tr match {
-        case Empty() => BigInt(0)
+        // case Empty() => BigInt(0)
         case Tip(v) => BigInt(1)
         case Bin(v, l, r) => BigInt(1) + max(l.height, r.height)
       }
@@ -66,20 +67,20 @@ object TreeObject {
     def size: BigInt = {
       // Count the number of element in JoinList
       tr match {
-        case Empty() => BigInt(0)
+        // case Empty() => BigInt(0)
         case Tip(_) => BigInt(1)
         case Bin(_, l, r) => BigInt(1) + l.size + r.size
       }
-    }.ensuring(res => res == tr.toInOrderList.size && (res == BigInt(0) || res.mod(2) == BigInt(1)))
+    }.ensuring(res => res == tr.toInOrderList.size && (/*res == BigInt(0) ||*/ res.mod(2) == BigInt(1)))
 
     
     def last: Either[A, B] = {
       // Return the value of the right most leaf or the tree
-      require(!tr.isEmpty)
+      // require(!tr.isEmpty)
       tr match {
         case Tip(v) => Left(v)
         case Bin(v, l, r) => {
-          assert(!r.isEmpty)
+          // assert(!r.isEmpty)
           assert(listLastOfConcat(l.toInOrderList :+ Right(v), r.toInOrderList) == ())
           r.last
         }
@@ -90,7 +91,7 @@ object TreeObject {
     def merge(other: Tree[A, B], newRoot: B): Tree[A, B] = {
       // Merge 2 non empty tree into a new tree with a new intermedia node
       // the new intermedia node is required because the limitation on the size of tree
-      require(!tr.isEmpty && !other.isEmpty)
+      // require(!tr.isEmpty && !other.isEmpty)
       Bin(newRoot, tr, other)
     }.ensuring(res => (
         res.size == tr.size + other.size + BigInt(1)
@@ -120,53 +121,9 @@ object TreeObject {
       }
     }.ensuring(_ == tr.toInOrderList.apply(i))
 
-  }
-
-  extension[A, B](l: List[Either[A, B]]) {
-    def caseMap[C, D](lf: A => C, rf: B => D): List[Either[C, D]] = {
-      l match {
-        case Nil() => Nil()
-        case Cons(x, xs) => {
-          x match {
-            case Left(v) => Cons(Left(lf(v)), xs.caseMap(lf, rf))
-            case Right(v) => Cons(Right(rf(v)), xs.caseMap(lf, rf))
-          }
-        }
-      }
-    }.ensuring(_.size == l.size)
-  }
-
-  def caseMapDistributive[A, B, C, D](l1: List[Either[A, B]], l2: List[Either[A, B]], lf: A => C, rf: B => D): Boolean = {
-    if (l1.isEmpty || l2.isEmpty) then true
-    else {
-      l1 match {
-        case Cons(x, xs) => {
-          assert(l1 ++ l2 == Cons(x, xs ++ l2))
-          // prependEqualListContact(xs ++ l2, x)
-          x match {
-            case Left(v) => {
-              assert((l1 ++ l2).caseMap(lf, rf) == Left(lf(v)) :: (xs ++ l2).caseMap(lf, rf)) // by definition
-              assert(l1.caseMap(lf, rf) == Left(lf(v)) :: xs.caseMap(lf, rf))
-              assert(l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf) == Left(lf(v)) :: (xs.caseMap(lf, rf) ++ l2.caseMap(lf, rf)))
-              caseMapDistributive(xs, l2, lf, rf)
-            }
-            case Right(v) => {
-              assert((l1 ++ l2).caseMap(lf, rf) == Right(rf(v)) :: (xs ++ l2).caseMap(lf, rf)) // by definition
-              assert(l1.caseMap(lf, rf) == Right(rf(v)) :: xs.caseMap(lf, rf))
-              assert(l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf) == Right(rf(v)) :: (xs.caseMap(lf, rf) ++ l2.caseMap(lf, rf)))
-              caseMapDistributive(xs, l2, lf, rf)
-            }
-          }
-        }
-      }
-    } 
-    (l1 ++ l2).caseMap(lf, rf) == l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf)
-  }.holds
-
-  extension[A, B](tr: Tree[A, B]) {
     def map[C, D](lf: A => C, rf: B => D): Tree[C, D] = {
       tr match {
-        case Empty() => Empty[C, D]()
+        // case Empty() => Empty[C, D]()
         case Tip(v) => Tip(lf(v))
         case Bin(v, l, r) => {
           val newl = l.map(lf, rf) // newl.toInOrderList == l.toInOrderList.caseMap(lf, rf)
@@ -207,4 +164,46 @@ object TreeObject {
     )
   }
 
+  // A helper function that peform map on Left and Right accordingly
+  extension[A, B](l: List[Either[A, B]]) {
+    def caseMap[C, D](lf: A => C, rf: B => D): List[Either[C, D]] = {
+      l match {
+        case Nil() => Nil()
+        case Cons(x, xs) => {
+          x match {
+            case Left(v) => Cons(Left(lf(v)), xs.caseMap(lf, rf))
+            case Right(v) => Cons(Right(rf(v)), xs.caseMap(lf, rf))
+          }
+        }
+      }
+    }.ensuring(_.size == l.size)
+  }
+
+  // Lemma -- case map is distributive
+  def caseMapDistributive[A, B, C, D](l1: List[Either[A, B]], l2: List[Either[A, B]], lf: A => C, rf: B => D): Boolean = {
+    if (l1.isEmpty || l2.isEmpty) then true
+    else {
+      l1 match {
+        case Cons(x, xs) => {
+          assert(l1 ++ l2 == Cons(x, xs ++ l2))
+          // prependEqualListContact(xs ++ l2, x)
+          x match {
+            case Left(v) => {
+              assert((l1 ++ l2).caseMap(lf, rf) == Left(lf(v)) :: (xs ++ l2).caseMap(lf, rf)) // by definition
+              assert(l1.caseMap(lf, rf) == Left(lf(v)) :: xs.caseMap(lf, rf))
+              assert(l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf) == Left(lf(v)) :: (xs.caseMap(lf, rf) ++ l2.caseMap(lf, rf)))
+              caseMapDistributive(xs, l2, lf, rf)
+            }
+            case Right(v) => {
+              assert((l1 ++ l2).caseMap(lf, rf) == Right(rf(v)) :: (xs ++ l2).caseMap(lf, rf)) // by definition
+              assert(l1.caseMap(lf, rf) == Right(rf(v)) :: xs.caseMap(lf, rf))
+              assert(l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf) == Right(rf(v)) :: (xs.caseMap(lf, rf) ++ l2.caseMap(lf, rf)))
+              caseMapDistributive(xs, l2, lf, rf)
+            }
+          }
+        }
+      }
+    } 
+    (l1 ++ l2).caseMap(lf, rf) == l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf)
+  }.holds
 }
