@@ -10,13 +10,13 @@ object ShuntTreeObject {
   // ST a b
   sealed abstract class ShuntTree[A, B]
   // Add a case for empty
-  case class E[A, B]() extends ShuntTree[A, B]
+  // case class E[A, B]() extends ShuntTree[A, B]
   // T a
   case class T[A, B](value: A) extends ShuntTree[A, B]
   // N (ST a b) (ST. a b) (ST a b)
-  case class N[A, B](left: ShuntTree[A, B], middle: ShuntContext[A, B], right: ShuntTree[A, B]) extends ShuntTree[A, B] {
+  case class N[A, B](left: ShuntTree[A, B], middle: ShuntContext[A, B], right: ShuntTree[A, B]) extends ShuntTree[A, B] /*{
     require(left != E[A, B]() && right != E[A, B]())
-  }
+  }*/
 
 
   // (ST. a b)
@@ -24,33 +24,33 @@ object ShuntTreeObject {
   // H. b
   case class H[A, B](value: B) extends ShuntContext[A, B]
   // L. (ST. a b) (ST. a b) (ST a b), left subtree is not leaf
-  case class L[A, B](left: ShuntContext[A, B], middle: ShuntContext[A, B], right: ShuntTree[A, B]) extends ShuntContext[A, B] {
+  case class L[A, B](left: ShuntContext[A, B], middle: ShuntContext[A, B], right: ShuntTree[A, B]) extends ShuntContext[A, B] /*{
     require(right != E[A, B]())
-  }
+  }*/
   // R. (ST a b) (ST. a b) (ST. a b)
-  case class R[A, B](left: ShuntTree[A, B], middle: ShuntContext[A, B], right: ShuntContext[A, B]) extends ShuntContext[A, B] {
+  case class R[A, B](left: ShuntTree[A, B], middle: ShuntContext[A, B], right: ShuntContext[A, B]) extends ShuntContext[A, B] /*{
     require(left != E[A, B]())
-  }
+  }*/
 
 
   extension[A, B](tr: ShuntTree[A, B]) {
-    def isEmpty: Boolean = {
-      tr match {
-        case E() => true
-        case _ => false
-      }
-    }
+    // def isEmpty: Boolean = {
+    //   tr match {
+    //     case E() => true
+    //     case _ => false
+    //   }
+    // }
 
     def size: BigInt = {
       decreases(tr)
       tr match {
-        case E() => BigInt(0)
+        // case E() => BigInt(0)
         case T(_) => BigInt(1)
         case N(left, middle, right) => left.size + middle.size + right.size
       }
     }.ensuring(res => (
         res >= BigInt(0)
-        && (res == BigInt(0) || res.mod(BigInt(2)) == BigInt(1))
+        && (/*res == BigInt(0) ||*/ res.mod(BigInt(2)) == BigInt(1))
       )
     )
     // def height: BigInt = {
@@ -142,7 +142,7 @@ object ShuntTreeObject {
     // }
 
     def applyOnTree(tr: Tree[A, B]): X = {
-      require(!tr.isEmpty)
+      // require(!tr.isEmpty)
       tr match {
         case Tip(v) => leaf(v)
         case Bin(v, l, r) => {
@@ -154,7 +154,7 @@ object ShuntTreeObject {
     }
 
     def applyOnShuntTree(tr: ShuntTree[A, B]): X = {
-      require(!tr.isEmpty)
+      // require(!tr.isEmpty)
       tr match {
         case T(v) => leaf(v)
         case N(l, c, r) => {
@@ -235,7 +235,7 @@ object ShuntTreeObject {
 
   def hole[A, B](v: B): Context[A, B] = {
     (l: Tree[A, B], r: Tree[A, B]) => {
-      require(!l.isEmpty && !r.isEmpty)
+      // require(!l.isEmpty && !r.isEmpty)
       Bin(v, l, r)
     }
   }
@@ -243,7 +243,7 @@ object ShuntTreeObject {
   def connectL[A, B](b: Context[A, B], a: Context[A, B], c: Tree[A, B]): Context[A, B] = {
     // require(!c.isEmpty)
     (l: Tree[A, B], r: Tree[A, B]) => {
-      require(!l.isEmpty && !r.isEmpty)
+      // require(!l.isEmpty && !r.isEmpty)
       a(b(l, r), c)
     }
   }
@@ -251,7 +251,7 @@ object ShuntTreeObject {
   def connectR[A, B](b: Tree[A, B], a: Context[A, B], c: Context[A, B]): Context[A, B] = {
     // require(!b.isEmpty)
     (l: Tree[A, B], r: Tree[A, B]) => {
-      require(!l.isEmpty && !r.isEmpty)
+      // require(!l.isEmpty && !r.isEmpty)
       a(b, c(l, r))
     }
   }
@@ -262,7 +262,7 @@ object ShuntTreeObject {
 
   def s2t[A, B](st: ShuntTree[A, B]): Tree[A, B] = {
     st match {
-      case E() => Empty()
+      // case E() => Empty()
       case T(v) => Tip(v)
       case N(b, a, c) => {
         val lt = s2t(b) // lt.size == b.size
