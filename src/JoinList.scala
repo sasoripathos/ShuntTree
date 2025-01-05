@@ -162,12 +162,12 @@ object JoinListObject {
           else Join(l, r.take(i - l.size))
       }
       /*
-    * 1) The content of the result is a subset of the original JoinList's content
-     * 2) The size of the result matches the specified conditions:
-     * 3) If `i <= 0`, the result size is 0
-     * 4) If `i >= jl.size`, the result size equals the size of the original JoinList
-     * 5) Otherwise, the result size equals `i`
-     * */
+      * 1) The content of the result is a subset of the original JoinList's content
+      * 2) The size of the result matches the specified conditions:
+      * 3) If `i <= 0`, the result size is 0
+      * 4) If `i >= jl.size`, the result size equals the size of the original JoinList
+      * 5) Otherwise, the result size equals `i`
+      * */
     }.ensuring { res =>
       res.toList.content.subsetOf(jl.toList.content) &&
       (res.size == (
@@ -215,7 +215,6 @@ object JoinListObject {
       res.toList.content.subsetOf(jl.toList.content) &&
       res.size == (to - from)
     }
-    
   }
 
   // ---------- list operations involving function parameters ----------
