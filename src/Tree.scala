@@ -8,16 +8,10 @@ object TreeObject {
 
   // Tree[T] -- Normal version
   sealed abstract class Tree[A, B]
-  // Add one case for empty tree
-  // case class Empty[A, B]() extends Tree[A, B]
   // Single leaf
   case class Tip[A, B](value: A) extends Tree[A, B]
   // Internal node
-  case class Bin[A, B](value: B, left: Tree[A, B], right: Tree[A, B]) extends Tree[A, B] /*{
-    require(
-      left != Empty[A, B]() && right != Empty[A, B]() // as define in the paper, left and right cannot be empty
-    )
-  }*/
+  case class Bin[A, B](value: B, left: Tree[A, B], right: Tree[A, B]) extends Tree[A, B]
 
 
   // Extend the following basic tree functions
@@ -36,29 +30,15 @@ object TreeObject {
           left ++ right
         }
       }
-    }.ensuring(res => (
-        // res.size == 0
-        // ||
-        (res.head.isLeft && res.last.isLeft)
-      )
-    )
+    }.ensuring(res => res.head.isLeft && res.last.isLeft)
 
     def ==(other: Tree[A, B]): Boolean = {
       tr.toInOrderList == other.toInOrderList
     }
 
-    // def isEmpty: Boolean = {
-    //   // Check if a JoinList is empty
-    //   tr match {
-    //     case Empty() => true
-    //     case _ => false
-    //   }
-    // }
-
     def height: BigInt = {
       // Calculate the hight of a tree, empty has hight 0
       tr match {
-        // case Empty() => BigInt(0)
         case Tip(v) => BigInt(1)
         case Bin(v, l, r) => BigInt(1) + max(l.height, r.height)
       }
@@ -71,7 +51,7 @@ object TreeObject {
         case Tip(_) => BigInt(1)
         case Bin(_, l, r) => BigInt(1) + l.size + r.size
       }
-    }.ensuring(res => res == tr.toInOrderList.size && (/*res == BigInt(0) ||*/ res.mod(2) == BigInt(1)))
+    }.ensuring(res => res == tr.toInOrderList.size && res.mod(2) == BigInt(1))
 
     
     def last: Either[A, B] = {
