@@ -7,40 +7,26 @@ import TreeObject.*
 
 object ShuntTreeObject {
 
-  // ST a b
+  // ST a b, ShuntTree
   sealed abstract class ShuntTree[A, B]
-  // Add a case for empty
-  // case class E[A, B]() extends ShuntTree[A, B]
   // T a
   case class T[A, B](value: A) extends ShuntTree[A, B]
   // N (ST a b) (ST. a b) (ST a b)
-  case class N[A, B](left: ShuntTree[A, B], middle: ShuntContext[A, B], right: ShuntTree[A, B]) extends ShuntTree[A, B] /*{
-    require(left != E[A, B]() && right != E[A, B]())
-  }*/
+  case class N[A, B](left: ShuntTree[A, B], middle: ShuntContext[A, B], right: ShuntTree[A, B]) extends ShuntTree[A, B]
 
 
-  // (ST. a b)
+  // (ST. a b): ShuntContext
   sealed abstract class ShuntContext[A, B]
   // H. b
   case class H[A, B](value: B) extends ShuntContext[A, B]
-  // L. (ST. a b) (ST. a b) (ST a b), left subtree is not leaf
-  case class L[A, B](left: ShuntContext[A, B], middle: ShuntContext[A, B], right: ShuntTree[A, B]) extends ShuntContext[A, B] /*{
-    require(right != E[A, B]())
-  }*/
+  // L. (ST. a b) (ST. a b) (ST a b)
+  case class L[A, B](left: ShuntContext[A, B], middle: ShuntContext[A, B], right: ShuntTree[A, B]) extends ShuntContext[A, B]
   // R. (ST a b) (ST. a b) (ST. a b)
-  case class R[A, B](left: ShuntTree[A, B], middle: ShuntContext[A, B], right: ShuntContext[A, B]) extends ShuntContext[A, B] /*{
-    require(left != E[A, B]())
-  }*/
+  case class R[A, B](left: ShuntTree[A, B], middle: ShuntContext[A, B], right: ShuntContext[A, B]) extends ShuntContext[A, B]
 
 
+  // ---------- Functions for ShuntContext ----------
   extension[A, B](tr: ShuntTree[A, B]) {
-    // def isEmpty: Boolean = {
-    //   tr match {
-    //     case E() => true
-    //     case _ => false
-    //   }
-    // }
-
     def size: BigInt = {
       decreases(tr)
       tr match {
@@ -49,40 +35,28 @@ object ShuntTreeObject {
         case N(left, middle, right) => left.size + middle.size + right.size
       }
     }.ensuring(res => (
-        res >= BigInt(0)
-        && (/*res == BigInt(0) ||*/ res.mod(BigInt(2)) == BigInt(1))
+        res >= BigInt(0) && res.mod(BigInt(2)) == BigInt(1)
       )
     )
-    // def height: BigInt = {
-    //   t match {
-    //     case T(_) => 1
-    //     case N(left, middle, right) =>
-    //       1 + max(left.height, max(middle.height, right.height))
-    //   }
-    // }
 
-    //TODO (important): def sum 
+    def height: BigInt = {
+      decreases(tr)
+      tr match {
+        case T(_) => BigInt(1)
+        case N(left, middle, right) => {
+          val hleft = left.height
+          val hright = right.height
+          val (ml, mr, mt) = middle.height
+          // left and right should apply to open ports of m, and should compare with closed path in m
+          max(max(ml + left.height, mr + right.height), mt)
+        }
+      }
+    }.ensuring(_ >= BigInt(1))
   }
 
 
-  // TODO:
-  // 1. need to extend the following basic list functions
-  // - toList: List[A]
-  // - size: BigInt
-  // - height: BigInt
-  // - apply(i), get element at index i
-  // ...... check the scala docs, maybe there are many others can do ......
-  // def max(a: BigInt, b: BigInt): BigInt = if (a > b) a else b
-  
+  // ---------- Functions for ShuntContext ----------
   extension[A, B](ct: ShuntContext[A, B]) {
-
-    // def toList: List[A] = {
-    //   c match {
-    //     case H(_) => List()
-    //     case L(left, middle, right) => left.toList ++ middle.toList ++ right.toList
-    //     case R(left, middle, right) => left.toList ++ middle.toList ++ right.toList
-    //   }
-    // }
     def size: BigInt = {
       decreases(ct)
       ct match {
@@ -91,58 +65,52 @@ object ShuntTreeObject {
         case R(left, middle, right) => left.size + middle.size + right.size
       }
     }.ensuring(res => res >= BigInt(1) && res.mod(BigInt(2)) == BigInt(1))
-    // def height: BigInt = {
-    //   c match {
-    //     case H(_) => 0
-    //     case L(left, middle, right) =>
-    //       1 + max(left.height, max(middle.height, right.height))
-    //     case R(left, middle, right) =>
-    //       1 + max(left.height, max(middle.height, right.height))
-    //   }
-    // }
+
+    def height: (BigInt, BigInt, BigInt)= {
+      // Height for a context is partial height, this function is to provide help to calculate the tree height
+      // case of context decides how subtree is attached, so should calculate the partial length for 3 cases
+      // (open port for external left tree, open port for external right, longest path ends at leaf)
+      decreases(ct)
+      ct match {
+        case H(_) => (BigInt(1), BigInt(1), BigInt(0)) //Hole would be an internal node, contribute 1 for left right subtree, no existing tree, gives 0
+        case L(l, m, r) => {
+          val (mlh, mrh, mth) = m.height // for m, the opened port mlh for context l, mrh for tree r
+          val (llh, lrh, lth) = l.height // all 3 casese for l should connect with mlh
+          (mlh + llh, mlh + lrh, max(max(mth, mrh + r.height), mlh + lth))
+        }
+        case R(l, m, r) => {
+          val (mlh, mrh, mth) = m.height // for m, the opened port mrh for context r, mlh for tree l
+          val (rlh, rrh, rth) = r.height // all 3 casese for r should connect with mrh
+          (mrh + rlh, mrh + rrh, max(max(mth, mlh + l.height), mrh + rth))
+        }
+      }
+    }.ensuring((r1, r2, r3) => max(max(r1, r2), r3) >= BigInt(1))
   }
 
-  // Define Shunt-> do we even need it?
-  abstract class ShuntOperation[X, Y]:
+  // ----------- Shunt Operation -----------
+  sealed trait ShuntOperation[X, Y]:
     def left(b: Y, a: Y, c: X): Y
     def right(b: X, a: Y, c: Y): Y
     def none(b: X, a: Y, c: X): X
   
-  case class treeSum() extends ShuntOperation[BigInt, BigInt]:
+  // An example for integer sum on tree
+  case class TreeIntSumOp() extends ShuntOperation[BigInt, BigInt]:
     override def left(b: BigInt, a: BigInt, c: BigInt): BigInt = b + a + c
     override def right(b: BigInt, a: BigInt, c: BigInt): BigInt = b + a + c
     override def none(b: BigInt, a: BigInt, c: BigInt): BigInt = b + a + c
+  
+  
 
 
-  abstract class ShuntContractionScheme[A, B, X, Y]:
+  
+  // ----------- Shunt Contraction Scheme -----------
+  sealed abstract class ShuntContractionScheme[A, B, X, Y]:
     def leaf(v: A): X
     def internal(v: B): Y
     def shuntops: ShuntOperation[X, Y]
-    
-    // def applyOnList(ls: List[Either[A, B]]): X = {
-    //   // require(!ls.isEmpty)
-    //   ls match {
-    //     case Nil() => empty
-    //     case Cons(x, Nil()) => {
-    //       x match {
-    //         case Left(v) => leaf(v)  // X
-    //         case Right(v) => none(empty, internal(v), empty) // Y
-    //       }
-    //     }
-    //     case Cons(x, Cons(y, ys)) => {
-    //       x match {
-    //         case Left(v) => y match {
-    //           case Left(v) => leaf(v)  // X
-    //           case Right(v) => none(empty, internal(v), empty) // Y
-    //         }
-    //         case Right(v) => none(empty, internal(v), empty) // Y
-    //       }
-    //     }
-    //   }
-    // }
 
     def applyOnTree(tr: Tree[A, B]): X = {
-      // require(!tr.isEmpty)
+      decreases(tr)
       tr match {
         case Tip(v) => leaf(v)
         case Bin(v, l, r) => {
@@ -154,7 +122,7 @@ object ShuntTreeObject {
     }
 
     def applyOnShuntTree(tr: ShuntTree[A, B]): X = {
-      // require(!tr.isEmpty)
+      decreases(tr)
       tr match {
         case T(v) => leaf(v)
         case N(l, c, r) => {
@@ -166,6 +134,7 @@ object ShuntTreeObject {
     }//.ensuring(_ == applyOnTree(s2t(tr)))
 
     def applyOnShuntContext(ct: ShuntContext[A, B]): Y = {
+      decreases(ct)
       ct match {
         case H(v) => internal(v)
         case L(l, m, r) => {
@@ -185,52 +154,20 @@ object ShuntTreeObject {
       }
     }
 
-    // This should insure all the implementation to have this property
-    // @law
-    // def isAssociative(x: T, y: T, z: T): Boolean = {
-    //   execute(execute(x, y), z) == execute(x, execute(y, z))
-    // }
-    // def isAssociative(x: T, y: T, z: T): Boolean
+
+  // Example Scheme for integer sum on tree
+  case class TreeIntSumScheme() extends ShuntContractionScheme[BigInt, BigInt, BigInt, BigInt]:
+    override def leaf(v: BigInt): BigInt = v
+    override def internal(v: BigInt): BigInt = v
+    override def shuntops: ShuntOperation[BigInt, BigInt] = TreeIntSumOp()
     
-
-  // Extention for ShuntTree class
-
-  // abstract class Context[A, B]:
-
-  //   def construct(l: Tree[A, B], r: Tree[A, B]): Tree[A, B]
+  // // def treeSum(st: ShuntTree[BigInt, BigInt]): Boolean
+  // case class TreeConstruction[A, B, X, Y]() extends ShuntContractionScheme[A, B, Tree[A, B], Context[X, Y]]:
+  //   override def leaf(v: A): BigInt = v
+  //   override def internal(v: BigInt): BigInt = v
+  //   override def shuntops: ShuntOperation[BigInt, BigInt] = TreeIntSumOp()
     
-  //   def evl(l: Tree[A, B], r: Tree[A, B]): Tree[A, B] = {
-  //     require(!l.isEmpty && !r.isEmpty)
-  //     construct(l, r)
-  //   }
-
-  //   // @invariant
-  //   // def inputNotEmpty: Boolean = !l.isEmpty && !r.isEmpty
-
-  //   // @law
-  //   // def contextProperty: Boolean = {
-  //   //   construct(l, r).size > l.size + r.size
-  //   // }
-  
-  // case class Hole[A, B](v: B) extends Context[A, B]:
-  //   override def construct(l: Tree[A, B], r: Tree[A, B]): Tree[A, B] = {
-  //     require(!l.isEmpty && !r.isEmpty)
-  //     Bin(v, l, r)
-  //   }.ensuring(_.size == BigInt(1) + l.size + r.size)
-  
-
-  // case class ConnectL[A, B](b: Context[A, B], a: Context[A, B], c: Tree[A, B]) extends Context[A, B] {
-  //   require(!c.isEmpty)
-
-  //   override def construct(l: Tree[A, B], r: Tree[A, B]): Tree[A, B] = {
-  //     require(!l.isEmpty && !r.isEmpty)
-  //     val lt = b.evl(l, r)
-  //     assert(lt.size >= BigInt(1) + l.size + r.size)
-  //     a.evl(lt, c)
-  //   }.ensuring(_.size >= BigInt(2) + l.size + r.size + c.size)
-  // }
-    
-  
+  // ----------- Functions for tree construction -----------
   type Context[A, B] = (Tree[A, B], Tree[A, B]) => Tree[A, B]
 
   def hole[A, B](v: B): Context[A, B] = {
@@ -279,6 +216,7 @@ object ShuntTreeObject {
       case R(b, a, c) => connectR(s2t(b), s2c(a), s2c(c))
     }
   }
+  
 
 
   // ----------- Some properties ----------
