@@ -286,14 +286,20 @@ object BalancedJoinListObject {
               } else {
                 // otherwise,
                 assert(other.height == rl.height + 1)
+                assert(rr.height == other.height - 2)
                 rl match {
                   case Join(rll, rlr) => {
                     ListSpecs.appendAssoc(jl.toList, rll.toList, rlr.toList)
                     val newl = jl ++ rll
                     ListSpecs.appendAssoc(newl.toList, rlr.toList, rr.toList)
+                    assert(rlr.height >= other.height - 3)
                     if (newl.height == other.height - 3) {
+                      // since ++ grows height by 0 or 1, rll must was -3 so rlr msut was -2
+                      assert(rlr.height == other.height - 2)
                       Join(Join(newl, rlr), rr)
                     } else {
+                      // othersie, newl could be -2 or -1, rlr must could be -2 or -3
+                      assert(newl.height >= other.height - 2 && newl.height <= other.height - 1)
                       Join(newl, Join(rlr, rr))
                     }
                   }
