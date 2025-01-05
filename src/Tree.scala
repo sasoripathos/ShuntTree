@@ -206,4 +206,26 @@ object TreeObject {
     (l1 ++ l2).caseMap(lf, rf) == l1.caseMap(lf, rf) ++ l2.caseMap(lf, rf)
   }.holds
 
+
+
+  // type Context[A, B] = (Tree[A, B], Tree[A, B]) => Tree[A, B]
+
+  // def hole[A, B](v: B): Context[A, B] = {
+  //   (l: Tree[A, B], r: Tree[A, B]) => {
+  //     require(!l.isEmpty && !r.isEmpty)
+  //     Bin(v, l, r)
+  //   }
+  // }
+
+  // def connectL[A, B](b: Context[A, B], a: Context[A, B], c: Tree[A, B]): Context[A, B] = {
+  //   (l: Tree[A, B], r: Tree[A, B]) => a(b(l, r), c)
+  // }
+
+  // def connectR[A, B](b: Tree[A, B], a: Context[A, B], c: Context[A, B]): Context[A, B] = {
+  //   (l: Tree[A, B], r: Tree[A, B]) => a(b, c(l, r))
+  // }
+
+  // def connectN[A, B](b: Tree[A, B], a: Context[A, B], c: Tree[A, B]): Tree[A, B] = {
+  //   a(b, c)
+  // }
 }
