@@ -84,42 +84,6 @@ object Helper {
     }
   }.ensuring((l1 ++ l2).last == l2.last)
 
-  // def listFoldLeftWhenAssociative[T](x: T, xs: List[T], f: (T, T) => T, zero: T):Boolean = {
-  //   // Precondition: the combine is associative
-  //   require(forall((x: T, y: T, z: T) => f(f(x, y), z) == f(x, f(y, z))))
-
-  //   val l = x :: xs
-  //   val one = f(zero, x)
-  //   assert(l.foldLeft(zero)(f) == xs.foldLeft(one)(f)) // LHS by definition
-  //   xs match {
-  //     case Nil() => {
-  //       assert(xs.foldLeft(f(zero, x))(f) == f(zero, x))
-  //       assert(xs.foldLeft(x)(f) == x)
-  //       true
-  //     }
-  //     case Cons(x2, xss) => {
-  //       assert(xs == x2 :: xss)
-  //       assert(l.foldLeft(zero)(f) == xss.foldLeft(f(one, x2))(f)) // LHS
-  //       assert(l.foldLeft(zero)(f) == xss.foldLeft(f(zero, f(x, x2)))(f)) // by associative
-  //       assert(l.foldLeft(zero)(f) == (f(x, x2) :: xss).foldLeft(zero)(f)) // by definition
-  //       assert(xs.foldLeft(x)(f) == (x2 :: xss).foldLeft(x)(f)) // by definition
-  //       assert(xs.foldLeft(x)(f) == xss.foldLeft(f(x, x2))(f)) // by definition
-  //       // listFoldLeftWhenAssociative(f(x, x2), xss, f, zero) // LHS = f(zero, xss.foldLeft(f(x, x2))(f))
-  //       listFoldLeftWhenAssociative(x2, xss, f, x)
-  //       && listFoldLeftWhenAssociative(x2, xss, f, one)
-  //       // // listFoldLeftWhenAssociative(x2, xss, f, one) // LHS = xs.foldLeft(one)(f) == f(f(zero, x), xss.foldLeft(x2)(f)) == f(zero, f(x, xss.foldLeft(x2)(f)))
-  //       // assert(listFoldLeftWhenAssociative(x2, xss, f, one) ==> (xs.foldLeft(one)(f) == f(one, xss.foldLeft(x2)(f)))) // by definition
-  //       // assert(listFoldLeftWhenAssociative(x2, xss, f, one) ==> (xs.foldLeft(one)(f) == f(zero, f(x, xss.foldLeft(x2)(f))))) // by associative
-  //       // // listFoldLeftWhenAssociative(x2, xss, f, x)
-  //       // assert(listFoldLeftWhenAssociative(x2, xss, f, x) ==> (xs.foldLeft(x)(f) == f(x, xss.foldLeft(x2)(f))))
-  //       // // assert(xs.foldLeft(one)(f) == f(zero, xs.foldLeft(x)(f)))
-  //       // listFoldLeftWhenAssociative(x2, xss, f, one)  && listFoldLeftWhenAssociative(x2, xss, f, x)
-  //     }
-  //   }
-
-  //   l.foldLeft(zero)(f) == f(zero, xs.foldLeft(x)(f))
-  // }.holds
-
   def prependEqualListContact[T](l: List[T], x: T): Boolean = {
     l match {
       case Nil() => {
@@ -154,50 +118,6 @@ object Helper {
     }
   }.ensuring((l1 ++ l2).map(f) == l1.map(f) ++ l2.map(f))
 
-  /*
-  def distributiveOfZip[T, R](l1: List[T], l2: List[R]): Unit = {
-  if (l1.isEmpty || l2.isEmpty) {
-
-    assert(l1.zip(l2) == Nil[(T, R)]())
-    ()
-  } else {
-    (l1, l2) match {
-      case (Cons(x1, xs1), Cons(x2, xs2)) =>
-
-        assert(l1.zip(l2) == Cons((x1, x2), xs1.zip(xs2)))
-
-        assert(l1.zip(l2).size == (if (l1.size <= l2.size) l1.size else l2.size))
-
-        distributiveOfZip(xs1, xs2)
-    }
-  }
-}.ensuring { res =>
-
-  l1.zip(l2).size == (if (l1.size <= l2.size) l1.size else l2.size)
-}
-  */
-
-
-
-
-  // def listHeadWithConcat[T](l1: List[T], l2: List[T]): Unit = {
-  //   require(!l1.isEmpty)
-  //   l1 match {
-  //     case Cons(x, Nil()) => {
-  //       assert(l1.tail.isEmpty)
-  //       assert(l1.tail ++ l2 == l2)
-  //       assert(l1 ++ l2 == x :: l2)
-  //       ()
-  //     }
-  //     case Cons(x, xs) => {
-  //       assert(!xs.isEmpty)
-  //       val headList = Cons(x, Nil())
-  //       assert(l1 == headList ++ xs)
-  //       ()
-  //     }
-  //   }
-  // }.ensuring(l1 ++ l2 == l1.head :: (l1.tail ++ l2))
-
   def foldLeftTailProp[T, R](l: List[T], t: T, f: (R, T) => R, zero: R): Boolean = {
     val em = Nil[T]()
     l match {
@@ -215,41 +135,6 @@ object Helper {
     }
     (l :+ t).foldLeft(zero)(f) == f(l.foldLeft(zero)(f), t)
   }.holds
-
-  // def foldLeftMiddleSplit[T](l1: List[T], y: T, ys: List[T], f: (T, T) => T, zero: T): Boolean = {
-  //   // Precondition 1: the combine is associative
-  //   require(forall((x: T, y: T, z: T) => f(f(x, y), z) == f(x, f(y, z))))
-  //   require(!l1.isEmpty)
-  //   val l2 = y :: ys
-  //   if (l1.isEmpty)`{
-  //     assert((l1 ++ (y :: ys)).foldLeft(zero)(f) == (y :: ys).foldLeft(zero)(f))
-
-  //   } else {
-  //   //   ys match {
-  //   //     case Nil() => {
-  //   //       assert(l2 == Cons(y, Nil[T]()))
-  //   //       assert(ys.foldLeft(y)(f) == y)
-  //   //       ListSpecs.snocIsAppend(l1, y)
-  //   //       assert(l1 ++ l2 == l1 :+ y)
-  //   //       foldLeftTailProp(l1, y, f, zero)
-  //   //     }
-  //   //     case Cons(y2, yss) => {
-          
-
-  //   //       listFoldLeftCombine(l1, l2, f, zero)
-  //   //       assert((l1 ++ l2).foldLeft(zero)(f) == l2.foldLeft(l1.foldLeft(zero)(f))(f))
-
-  //   //       prependEqualListContact(ys, y)
-  //   //       assert(l2 == Cons(y, Nil[T]()) ++ ys)
-  //   //       assert(l2.foldLeft(l1.foldLeft(zero)(f))(f) == ys.foldLeft(f(l1.foldLeft(zero)(f), y))(f))
-  //   //       assert(Cons(y, Nil[T]()).foldLeft(l1.foldLeft(zero)(f))(f) == f(l1.foldLeft(zero)(f), y))
-  //   //       foldLeftMiddleSplit(Cons(y, Nil[T]()), y2, yss, f, l1.foldLeft(zero)(f)) // l2.foldLeft(l1.foldLeft(zero)(f))(f) = f([y].foldLeft(aggl1)(f), yss.foldLeft(y2)(f))
-  //   //     }
-  //   //   }
-  //   // }
-    
-  //   (l1 ++ (y :: ys)).foldLeft(zero)(f) == f(l1.foldLeft(zero)(f), ys.foldLeft(y)(f))
-  // }
 
   abstract class ListAggFunction[T]:
     def execute(x: T, y: T): T
